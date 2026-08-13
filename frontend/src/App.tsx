@@ -9,6 +9,7 @@ import InvoiceReview from './components/invoices/review';
 import StockLedger from './components/stock/ledger';
 import StockTransfer from './components/stock/transfer';
 import Warehouses from './components/warehouse/warehouse';
+import Products from './components/products/products';  
 
 function Placeholder({ title }: { title: string }) {
   return <h2>{title} (placeholder)</h2>;
@@ -23,7 +24,6 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/warehouses" element={<Warehouses />} />
-          <Route path="/products" element={<Placeholder title="Products" />} />
           <Route path="/inventory" element={<Placeholder title="Inventory" />} />
           <Route path="/ledger" element={<StockLedger />} />
           <Route path="/invoices" element={<InvoicesList />} />
@@ -33,6 +33,7 @@ export default function App() {
           <Route path="/orders" element={<Placeholder title="Customer Orders" />} />
           <Route path="/transfers" element={<StockTransfer />} />
           <Route path="/users" element={<Placeholder title="Users" />} />
+          <Route path="/products" element={<Products />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />
