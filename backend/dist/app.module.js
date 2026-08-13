@@ -10,7 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
-const user_module_1 = require("./modules/users/user.module");
+const users_module_1 = require("./modules/users/users.module");
 const warehouses_module_1 = require("./modules/warehouse/warehouses.module");
 const products_module_1 = require("./modules/products/products.module");
 const stock_module_1 = require("./modules/stock/stock.module");
@@ -49,7 +49,7 @@ exports.AppModule = AppModule = __decorate([
                     };
                 },
             }),
-            user_module_1.UsersModule,
+            users_module_1.UsersModule,
             warehouses_module_1.WarehousesModule,
             products_module_1.ProductsModule,
             stock_module_1.StockModule,
