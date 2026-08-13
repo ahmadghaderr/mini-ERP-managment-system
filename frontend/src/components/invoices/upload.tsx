@@ -27,7 +27,6 @@ export default function InvoiceUpload() {
       <div className="pg-head">
         <div>
           <div className="pg-title">Upload invoice</div>
-          <div className="pg-sub">Upload a supplier PDF. Stock is only added later, when the shipment arrives.</div>
         </div>
         <button className="btn btn--ghost" onClick={() => navigate('/invoices')}>Back</button>
       </div>

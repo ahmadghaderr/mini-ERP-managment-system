@@ -42,7 +42,6 @@ export default function InvoiceReview() {
       <div className="pg-head">
         <div>
           <div className="pg-title">Review invoice</div>
-          <div className="pg-sub">Check the extracted items, then confirm or reject.</div>
         </div>
         <button className="btn btn--ghost" onClick={() => navigate('/invoices')}>Back</button>
       </div>

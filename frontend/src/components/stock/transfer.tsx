@@ -35,7 +35,6 @@ export default function StockTransfer() {
       <div className="pg-head">
         <div>
           <div className="pg-title">Transfer stock</div>
-          <div className="pg-sub">Move one product between warehouses. Logged as two ledger entries.</div>
         </div>
       </div>
 
