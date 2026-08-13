@@ -11,13 +11,17 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const warehouse_prouct_entity_1 = require("./entities/warehouse-prouct.entity");
 const stock_movement_entity_1 = require("./entities/stock-movement.entity");
+const stock_service_1 = require("./stock.service");
+const stock_controller_1 = require("./stock.controller");
 let StockModule = class StockModule {
 };
 exports.StockModule = StockModule;
 exports.StockModule = StockModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([warehouse_prouct_entity_1.WarehouseProduct, stock_movement_entity_1.StockMovement])],
-        exports: [typeorm_1.TypeOrmModule],
+        controllers: [stock_controller_1.StockController],
+        providers: [stock_service_1.StockService],
+        exports: [stock_service_1.StockService, typeorm_1.TypeOrmModule],
     })
 ], StockModule);
 //# sourceMappingURL=stock.module.js.map

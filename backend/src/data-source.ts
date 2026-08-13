@@ -6,6 +6,7 @@ config();
 import { User } from './modules/users/entities/user.entity';
 import { Warehouse } from './modules/warehouse/entities/warehouse.entity';
 import { Product } from './modules/products/entities/product.entity';
+import { WarehouseProduct } from './modules/stock/entities/warehouse-prouct.entity';
 import { StockMovement } from './modules/stock/entities/stock-movement.entity';
 import { WarehouseTransfer } from './modules/transfers/entities/warehouse-transfer.entity';
 import { SupplierInvoice } from './modules/supplier-invoices/entities/supplier-invoice.entity';
@@ -24,6 +25,7 @@ export default new DataSource({
     User,
     Warehouse,
     Product,
+    WarehouseProduct,
     StockMovement,
     WarehouseTransfer,
     SupplierInvoice,

@@ -6,6 +6,7 @@ const dotenv_1 = require("dotenv");
 const user_entity_1 = require("./modules/users/entities/user.entity");
 const warehouse_entity_1 = require("./modules/warehouse/entities/warehouse.entity");
 const product_entity_1 = require("./modules/products/entities/product.entity");
+const warehouse_prouct_entity_1 = require("./modules/stock/entities/warehouse-prouct.entity");
 const stock_movement_entity_1 = require("./modules/stock/entities/stock-movement.entity");
 const warehouse_transfer_entity_1 = require("./modules/transfers/entities/warehouse-transfer.entity");
 const supplier_invoice_entity_1 = require("./modules/supplier-invoices/entities/supplier-invoice.entity");
@@ -23,6 +24,7 @@ exports.default = new typeorm_1.DataSource({
         user_entity_1.User,
         warehouse_entity_1.Warehouse,
         product_entity_1.Product,
+        warehouse_prouct_entity_1.WarehouseProduct,
         stock_movement_entity_1.StockMovement,
         warehouse_transfer_entity_1.WarehouseTransfer,
         supplier_invoice_entity_1.SupplierInvoice,
