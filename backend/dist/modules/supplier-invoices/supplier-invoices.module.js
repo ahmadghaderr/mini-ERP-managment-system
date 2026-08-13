@@ -11,13 +11,17 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const supplier_invoice_entity_1 = require("./entities/supplier-invoice.entity");
 const supplier_invoice_item_entity_1 = require("./entities/supplier-invoice-item.entity");
+const supplier_invoices_service_1 = require("./supplier-invoices.service");
+const supplier_invoices_controller_1 = require("./supplier-invoices.controller");
 let SupplierInvoicesModule = class SupplierInvoicesModule {
 };
 exports.SupplierInvoicesModule = SupplierInvoicesModule;
 exports.SupplierInvoicesModule = SupplierInvoicesModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([supplier_invoice_entity_1.SupplierInvoice, supplier_invoice_item_entity_1.SupplierInvoiceItem])],
-        exports: [typeorm_1.TypeOrmModule],
+        controllers: [supplier_invoices_controller_1.SupplierInvoicesController],
+        providers: [supplier_invoices_service_1.SupplierInvoicesService],
+        exports: [supplier_invoices_service_1.SupplierInvoicesService, typeorm_1.TypeOrmModule],
     })
 ], SupplierInvoicesModule);
 //# sourceMappingURL=supplier-invoices.module.js.map
