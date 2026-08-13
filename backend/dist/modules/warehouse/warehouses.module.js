@@ -10,13 +10,17 @@ exports.WarehousesModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const warehouse_entity_1 = require("./entities/warehouse.entity");
+const warehouses_service_1 = require("./warehouses.service");
+const warehouses_controller_1 = require("./warehouses.controller");
 let WarehousesModule = class WarehousesModule {
 };
 exports.WarehousesModule = WarehousesModule;
 exports.WarehousesModule = WarehousesModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([warehouse_entity_1.Warehouse])],
-        exports: [typeorm_1.TypeOrmModule],
+        controllers: [warehouses_controller_1.WarehousesController],
+        providers: [warehouses_service_1.WarehousesService],
+        exports: [warehouses_service_1.WarehousesService, typeorm_1.TypeOrmModule],
     })
 ], WarehousesModule);
 //# sourceMappingURL=warehouses.module.js.map
