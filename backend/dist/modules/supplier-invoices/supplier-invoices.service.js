@@ -19,12 +19,18 @@ const typeorm_2 = require("typeorm");
 const supplier_invoice_entity_1 = require("./entities/supplier-invoice.entity");
 const supplier_invoice_item_entity_1 = require("./entities/supplier-invoice-item.entity");
 const enums_1 = require("../../common/enums");
+const typeorm_3 = require("typeorm");
+const warehouse_prouct_entity_1 = require("../stock/entities/warehouse-prouct.entity");
+const stock_movement_entity_1 = require("../stock/entities/stock-movement.entity");
+const enums_2 = require("../../common/enums");
 let SupplierInvoicesService = class SupplierInvoicesService {
     invoiceRepo;
     itemRepo;
-    constructor(invoiceRepo, itemRepo) {
+    dataSource;
+    constructor(invoiceRepo, itemRepo, dataSource) {
         this.invoiceRepo = invoiceRepo;
         this.itemRepo = itemRepo;
+        this.dataSource = dataSource;
     }
     findAll() {
         return this.invoiceRepo.find({
@@ -75,14 +81,44 @@ let SupplierInvoicesService = class SupplierInvoicesService {
         if (invoice.status !== enums_1.SupplierInvoiceStatus.CONFIRMED) {
             throw new common_1.BadRequestException(`Only confirmed invoices can be delivered (current: "${invoice.status}")`);
         }
-        invoice.status = enums_1.SupplierInvoiceStatus.DELIVERED;
-        invoice.deliveredAt = new Date();
-        return this.invoiceRepo.save(invoice);
+        return this.dataSource.transaction(async (manager) => {
+            for (const item of invoice.items) {
+                if (!item.matchedProductId)
+                    continue;
+                let stock = await manager.findOne(warehouse_prouct_entity_1.WarehouseProduct, {
+                    where: {
+                        warehouseId: invoice.warehouseId,
+                        productId: item.matchedProductId,
+                    },
+                });
+                if (!stock) {
+                    stock = manager.create(warehouse_prouct_entity_1.WarehouseProduct, {
+                        warehouseId: invoice.warehouseId,
+                        productId: item.matchedProductId,
+                        quantityOnHand: 0,
+                        quantityReserved: 0,
+                    });
+                }
+                stock.quantityOnHand += item.quantity;
+                await manager.save(stock);
+                const movement = manager.create(stock_movement_entity_1.StockMovement, {
+                    warehouseId: invoice.warehouseId,
+                    productId: item.matchedProductId,
+                    quantityChange: item.quantity,
+                    reason: enums_2.StockMovementReason.INVOICE_DELIVERED,
+                    referenceId: invoice.id,
+                });
+                await manager.save(movement);
+            }
+            invoice.status = enums_1.SupplierInvoiceStatus.DELIVERED;
+            invoice.deliveredAt = new Date();
+            return manager.save(invoice);
+        });
     }
-    async remove(id) {
-        const invoice = await this.findOne(id);
-        await this.invoiceRepo.remove(invoice);
-    }
+    invoice;
+    status = enums_1.SupplierInvoiceStatus.DELIVERED;
+    invoice;
+    deliveredAt = new Date();
 };
 exports.SupplierInvoicesService = SupplierInvoicesService;
 exports.SupplierInvoicesService = SupplierInvoicesService = __decorate([
@@ -90,6 +126,14 @@ exports.SupplierInvoicesService = SupplierInvoicesService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(supplier_invoice_entity_1.SupplierInvoice)),
     __param(1, (0, typeorm_1.InjectRepository)(supplier_invoice_item_entity_1.SupplierInvoiceItem)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_3.DataSource])
 ], SupplierInvoicesService);
+return this.invoiceRepo.save(invoice);
+async;
+remove(id, string);
+Promise < void  > {
+    const: invoice = await this.findOne(id),
+    await, this: .invoiceRepo.remove(invoice)
+};
 //# sourceMappingURL=supplier-invoices.service.js.map

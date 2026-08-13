@@ -7,6 +7,11 @@ import { SupplierInvoice } from './entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from './entities/supplier-invoice-item.entity';
 import { SupplierInvoiceStatus } from '../../common/enums';
 
+import { DataSource } from 'typeorm';
+import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
+import { StockMovement } from '../stock/entities/stock-movement.entity';
+import { StockMovementReason } from '../../common/enums';
+
 // shape of one incoming line item
 interface ItemInput {
   extractedProductName: string;
@@ -22,6 +27,7 @@ export class SupplierInvoicesService {
     private readonly invoiceRepo: Repository<SupplierInvoice>,
     @InjectRepository(SupplierInvoiceItem)
     private readonly itemRepo: Repository<SupplierInvoiceItem>,
+    private readonly dataSource: DataSource,
   ) {}
 
   // GET all invoices, with their items and warehouse loaded
@@ -91,15 +97,55 @@ export class SupplierInvoicesService {
     return this.invoiceRepo.save(invoice);
   }
 
-  // DELIVER — shipment arrived. THIS is where stock gets added.
+  // DELIVER — shipment arrived. Adds each matched item to warehouse stock, atomically, and flips status to delivered.
   async deliver(id: string): Promise<SupplierInvoice> {
-    const invoice = await this.findOne(id);
+    const invoice = await this.findOne(id); // loads items + warehouse
 
     if (invoice.status !== SupplierInvoiceStatus.CONFIRMED) {
       throw new BadRequestException(
         `Only confirmed invoices can be delivered (current: "${invoice.status}")`,
       );
     }
+
+    return this.dataSource.transaction(async (manager) => {
+      for (const item of invoice.items) {
+        // can only add stock for items matched to a real product
+        if (!item.matchedProductId) continue;
+
+        // find or create the stock row for this warehouse+product
+        let stock = await manager.findOne(WarehouseProduct, {
+          where: {
+            warehouseId: invoice.warehouseId,
+            productId: item.matchedProductId,
+          },
+        });
+        if (!stock) {
+          stock = manager.create(WarehouseProduct, {
+            warehouseId: invoice.warehouseId,
+            productId: item.matchedProductId,
+            quantityOnHand: 0,
+            quantityReserved: 0,
+          });
+        }
+        stock.quantityOnHand += item.quantity;
+        await manager.save(stock);
+
+        // log the movement
+        const movement = manager.create(StockMovement, {
+          warehouseId: invoice.warehouseId,
+          productId: item.matchedProductId,
+          quantityChange: item.quantity,
+          reason: StockMovementReason.INVOICE_DELIVERED,
+          referenceId: invoice.id,
+        });
+        await manager.save(movement);
+      }
+
+      invoice.status = SupplierInvoiceStatus.DELIVERED;
+      invoice.deliveredAt = new Date();
+      return manager.save(invoice);
+    });
+  }
 
     // TODO: when the stock module exists, add a stock_movement row
     // (reason: 'invoice_delivered') for each item and bump warehouse_product.

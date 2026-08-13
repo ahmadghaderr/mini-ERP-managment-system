@@ -12,5 +12,5 @@ export declare class SupplierInvoicesController {
         reviewedBy?: string;
     }): Promise<import("./entities/supplier-invoice.entity").SupplierInvoice>;
     deliver(id: string): Promise<import("./entities/supplier-invoice.entity").SupplierInvoice>;
-    remove(id: string): Promise<void>;
+    remove(id: string): any;
 }

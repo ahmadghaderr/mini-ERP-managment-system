@@ -13,12 +13,21 @@ const supplier_invoice_entity_1 = require("./entities/supplier-invoice.entity");
 const supplier_invoice_item_entity_1 = require("./entities/supplier-invoice-item.entity");
 const supplier_invoices_service_1 = require("./supplier-invoices.service");
 const supplier_invoices_controller_1 = require("./supplier-invoices.controller");
+const warehouse_prouct_entity_1 = require("../stock/entities/warehouse-prouct.entity");
+const stock_movement_entity_1 = require("../stock/entities/stock-movement.entity");
 let SupplierInvoicesModule = class SupplierInvoicesModule {
 };
 exports.SupplierInvoicesModule = SupplierInvoicesModule;
 exports.SupplierInvoicesModule = SupplierInvoicesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([supplier_invoice_entity_1.SupplierInvoice, supplier_invoice_item_entity_1.SupplierInvoiceItem])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                supplier_invoice_entity_1.SupplierInvoice,
+                supplier_invoice_item_entity_1.SupplierInvoiceItem,
+                warehouse_prouct_entity_1.WarehouseProduct,
+                stock_movement_entity_1.StockMovement,
+            ]),
+        ],
         controllers: [supplier_invoices_controller_1.SupplierInvoicesController],
         providers: [supplier_invoices_service_1.SupplierInvoicesService],
         exports: [supplier_invoices_service_1.SupplierInvoicesService, typeorm_1.TypeOrmModule],
