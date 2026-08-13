@@ -1,9 +1,10 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Body, HttpCode,
+  Controller, Get, Post, Patch, Delete, Param, Body, HttpCode,
 } from '@nestjs/common';
 import { WarehousesService } from './warehouses.service';
 import { Warehouse } from './entities/warehouse.entity';
+import { CreateWarehouseDto } from './dto/create-warehouse.dto';
+import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
 
 @Controller('warehouses')
 export class WarehousesController {
@@ -20,12 +21,12 @@ export class WarehousesController {
   }
 
   @Post()
-  create(@Body() data: Partial<Warehouse>) {
+  create(@Body() data: CreateWarehouseDto) {
     return this.warehousesService.create(data);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Partial<Warehouse>) {
+  update(@Param('id') id: string, @Body() data: UpdateWarehouseDto) {
     return this.warehousesService.update(id, data);
   }
 

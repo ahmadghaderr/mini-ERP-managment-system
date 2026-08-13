@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WarehousesController = void 0;
 const common_1 = require("@nestjs/common");
 const warehouses_service_1 = require("./warehouses.service");
+const create_warehouse_dto_1 = require("./dto/create-warehouse.dto");
+const update_warehouse_dto_1 = require("./dto/update-warehouse.dto");
 let WarehousesController = class WarehousesController {
     warehousesService;
     constructor(warehousesService) {
@@ -54,7 +56,7 @@ __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_warehouse_dto_1.CreateWarehouseDto]),
     __metadata("design:returntype", void 0)
 ], WarehousesController.prototype, "create", null);
 __decorate([
@@ -62,7 +64,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, update_warehouse_dto_1.UpdateWarehouseDto]),
     __metadata("design:returntype", void 0)
 ], WarehousesController.prototype, "update", null);
 __decorate([
