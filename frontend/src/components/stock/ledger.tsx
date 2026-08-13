@@ -40,7 +40,6 @@ export default function StockLedger() {
       <div className="pg-head">
         <div>
           <div className="pg-title">Stock movement ledger</div>
-          <div className="pg-sub">Every stock change, newest first. This log is never edited.</div>
         </div>
       </div>
 

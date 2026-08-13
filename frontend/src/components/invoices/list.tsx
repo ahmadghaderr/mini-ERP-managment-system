@@ -41,7 +41,6 @@ export default function InvoicesList() {
       <div className="pg-head">
         <div>
           <div className="pg-title">Supplier Invoices</div>
-          <div className="pg-sub">Uploaded invoices and their delivery status.</div>
         </div>
         <button className="btn btn--primary" onClick={() => navigate('/invoices/upload')}>
           + Upload invoice
