@@ -2,15 +2,12 @@ import {
   Injectable, NotFoundException, BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { SupplierInvoice } from './entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from './entities/supplier-invoice-item.entity';
-import { SupplierInvoiceStatus } from '../../common/enums';
-
-import { DataSource } from 'typeorm';
 import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
-import { StockMovementReason } from '../../common/enums';
+import { SupplierInvoiceStatus, StockMovementReason } from '../../common/enums';
 
 // shape of one incoming line item
 interface ItemInput {
@@ -65,10 +62,8 @@ export class SupplierInvoicesService {
       extractedSupplierName: data.extractedSupplierName,
       invoiceDateExtracted: data.invoiceDateExtracted,
       extractedDeliveryDate: data.extractedDeliveryDate,
-      // status defaults to pending_extraction from the entity
       items: data.items?.map((it) => this.itemRepo.create(it)),
     });
-    // cascade: true on the entity means saving the invoice saves its items too
     return this.invoiceRepo.save(invoice);
   }
 
@@ -97,9 +92,10 @@ export class SupplierInvoicesService {
     return this.invoiceRepo.save(invoice);
   }
 
-  // DELIVER — shipment arrived. Adds each matched item to warehouse stock, atomically, and flips status to delivered.
+  // DELIVER — shipment arrived. Adds each matched item to warehouse stock,
+  // atomically, and flips status to delivered.
   async deliver(id: string): Promise<SupplierInvoice> {
-    const invoice = await this.findOne(id); // loads items + warehouse
+    const invoice = await this.findOne(id);
 
     if (invoice.status !== SupplierInvoiceStatus.CONFIRMED) {
       throw new BadRequestException(
@@ -109,10 +105,8 @@ export class SupplierInvoicesService {
 
     return this.dataSource.transaction(async (manager) => {
       for (const item of invoice.items) {
-        // can only add stock for items matched to a real product
         if (!item.matchedProductId) continue;
 
-        // find or create the stock row for this warehouse+product
         let stock = await manager.findOne(WarehouseProduct, {
           where: {
             warehouseId: invoice.warehouseId,
@@ -130,7 +124,6 @@ export class SupplierInvoicesService {
         stock.quantityOnHand += item.quantity;
         await manager.save(stock);
 
-        // log the movement
         const movement = manager.create(StockMovement, {
           warehouseId: invoice.warehouseId,
           productId: item.matchedProductId,
@@ -145,16 +138,6 @@ export class SupplierInvoicesService {
       invoice.deliveredAt = new Date();
       return manager.save(invoice);
     });
-  }
-
-    // TODO: when the stock module exists, add a stock_movement row
-    // (reason: 'invoice_delivered') for each item and bump warehouse_product.
-    // That requires the StockService, which we build next. For now we just
-    // flip the status so the flow is testable.
-
-    invoice.status = SupplierInvoiceStatus.DELIVERED;
-    invoice.deliveredAt = new Date();
-    return this.invoiceRepo.save(invoice);
   }
 
   // DELETE

@@ -1,8 +1,6 @@
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { SupplierInvoice } from './entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from './entities/supplier-invoice-item.entity';
-import { SupplierInvoiceStatus } from '../../common/enums';
-import { DataSource } from 'typeorm';
 interface ItemInput {
     extractedProductName: string;
     matchedProductId?: string;
@@ -27,9 +25,6 @@ export declare class SupplierInvoicesService {
     confirm(id: string, reviewedBy?: string): Promise<SupplierInvoice>;
     reject(id: string, reviewedBy?: string): Promise<SupplierInvoice>;
     deliver(id: string): Promise<SupplierInvoice>;
-    invoice: any;
-    status: SupplierInvoiceStatus;
-    invoice: any;
-    deliveredAt: Date;
+    remove(id: string): Promise<void>;
 }
 export {};
