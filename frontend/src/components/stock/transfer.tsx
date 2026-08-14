@@ -1,81 +1,234 @@
-import { useState } from 'react';
-import '../shared/pages.css';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./stock.css";
+import type {
+  Warehouse,
+  NewTransferPayload,
+  TransferItem,
+} from "../../types/stock";
 
-// TODO: fetch from backend
-const warehouses = ['Main', 'North', 'South'];
-const products = ['Bottled Water 500ml', 'Canned Beans', 'First Aid Kit'];
-
-interface TransferRow {
-  id: string; date: string; product: string;
-  from: string; to: string; quantity: number;
+interface ProductOption {
+  id: string;
+  name: string;
 }
 
-const pastTransfers: TransferRow[] = [
-  { id: 't-1', date: '2026-08-08', product: 'Bottled Water 500ml', from: 'North', to: 'Main', quantity: 30 },
+const mockWarehouses: Warehouse[] = [
+  { id: "wh-01", name: "Main Warehouse", code: "WH-MAIN" },
+  { id: "wh-02", name: "North Branch", code: "WH-NORTH" },
+  { id: "wh-03", name: "South Hub", code: "WH-SOUTH" },
 ];
 
-export default function StockTransfer() {
-  const [product, setProduct] = useState(products[0]);
-  const [from, setFrom] = useState(warehouses[0]);
-  const [to, setTo] = useState(warehouses[1]);
-  const [quantity, setQuantity] = useState(0);
-  const [error, setError] = useState('');
+const mockProducts: ProductOption[] = [
+  { id: "prod-01", name: "Bottled Water 500ml" },
+  { id: "prod-02", name: "Canned Beans" },
+  { id: "prod-03", name: "Rice 1kg" },
+];
 
-  function submit() {
-    if (from === to) { setError('Source and destination must differ.'); return; }
-    if (quantity <= 0) { setError('Quantity must be greater than 0.'); return; }
-    setError('');
-    // TODO: POST /warehouse-transfers → creates 1 warehouse_transfer row +
-    // 2 stock_movement rows (transfer_out from `from`, transfer_in to `to`).
-    console.log({ product, from, to, quantity });
-  }
+interface TransferProps {
+  warehouses?: Warehouse[];
+  products?: ProductOption[];
+  onSave?: (payload: NewTransferPayload) => void;
+  onClose?: () => void;
+}
+
+export default function Transfer({
+  warehouses = mockWarehouses,
+  products = mockProducts,
+  onSave,
+  onClose,
+}: TransferProps) {
+  const navigate = useNavigate();
+  const handleBack = onClose ?? (() => navigate(-1));
+
+  const [sourceId, setSourceId] = useState(warehouses[0]?.id ?? "");
+  const [destId, setDestId] = useState(
+    warehouses[1]?.id ?? warehouses[0]?.id ?? "",
+  );
+  const [items, setItems] = useState<TransferItem[]>([
+    {
+      productId: products[0]?.id ?? "",
+      productName: products[0]?.name ?? "",
+      quantity: 1,
+    },
+  ]);
+  const [notes, setNotes] = useState("");
+
+  const updateItem = (index: number, fields: Partial<TransferItem>) => {
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, ...fields } : item)),
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sourceId === destId)
+      return alert("Source and Destination warehouses must be different.");
+
+    const sourceWh = warehouses.find((w) => w.id === sourceId);
+    const destWh = warehouses.find((w) => w.id === destId);
+
+    if (!sourceWh || !destWh) return alert("Select valid warehouses.");
+
+    const payload: NewTransferPayload = {
+      sourceWarehouseId: sourceWh.id,
+      sourceWarehouseName: sourceWh.name,
+      destinationWarehouseId: destWh.id,
+      destinationWarehouseName: destWh.name,
+      items,
+      requestedBy: "Ahmad Ghader",
+      notes,
+    };
+
+    if (onSave) {
+      onSave(payload);
+    } else {
+      console.log("Transfer created:", payload);
+      navigate("/ledger");
+    }
+    if (onClose) onClose();
+  };
 
   return (
-    <div className="pg">
-      <div className="pg-head">
+    <div className="stk-pg">
+      <div className="stk-pg-head">
         <div>
-          <div className="pg-title">Transfer stock</div>
+          <div className="stk-pg-title">Create Stock Transfer</div>
+          <p className="stk-pg-subtitle">
+            Move inventory between warehouses and log it to the ledger.
+          </p>
         </div>
+        <button className="stk-btn stk-btn--ghost" onClick={handleBack}>
+          ← Back
+        </button>
       </div>
 
-      {error && <div className="banner" style={{ background: '#fde8e8', borderColor: '#feb2b2', color: '#a32d2d' }}>{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="stk-card stk-upload-card">
+          <div className="stk-filters-row">
+            <div className="stk-field">
+              <label>From Warehouse</label>
+              <select
+                className="stk-select"
+                value={sourceId}
+                onChange={(e) => setSourceId(e.target.value)}
+              >
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="stk-field">
+              <label>To Warehouse</label>
+              <select
+                className="stk-select"
+                value={destId}
+                onChange={(e) => setDestId(e.target.value)}
+              >
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-      <div className="filters" style={{ maxWidth: 460, flexDirection: 'column' }}>
-        <div className="field"><label>Product</label>
-          <select className="select" value={product} onChange={(e) => setProduct(e.target.value)}>
-            {products.map((p) => <option key={p}>{p}</option>)}
-          </select>
-        </div>
-        <div className="field"><label>From warehouse</label>
-          <select className="select" value={from} onChange={(e) => setFrom(e.target.value)}>
-            {warehouses.map((w) => <option key={w}>{w}</option>)}
-          </select>
-        </div>
-        <div className="field"><label>To warehouse</label>
-          <select className="select" value={to} onChange={(e) => setTo(e.target.value)}>
-            {warehouses.map((w) => <option key={w}>{w}</option>)}
-          </select>
-        </div>
-        <div className="field"><label>Quantity</label>
-          <input className="input" type="number" value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))} />
-        </div>
-        <button className="btn btn--primary" onClick={submit}>Transfer</button>
-      </div>
+          <div>
+            <div className="stk-extracted-header">
+              <label style={{ fontWeight: 600 }}>Transfer Items</label>
+              <button
+                type="button"
+                className="stk-link-btn"
+                onClick={() =>
+                  setItems([
+                    ...items,
+                    {
+                      productId: products[0]?.id ?? "",
+                      productName: products[0]?.name ?? "",
+                      quantity: 1,
+                    },
+                  ])
+                }
+              >
+                + Add Item
+              </button>
+            </div>
 
-      <div className="pg-sub" style={{ margin: '24px 0 8px', fontWeight: 600 }}>Recent transfers</div>
-      <div className="card">
-        <table className="tbl">
-          <thead><tr><th>Date</th><th>Product</th><th>From</th><th>To</th><th>Qty</th></tr></thead>
-          <tbody>
-            {pastTransfers.map((t) => (
-              <tr key={t.id}>
-                <td>{t.date}</td><td>{t.product}</td><td>{t.from}</td><td>{t.to}</td><td>{t.quantity}</td>
-              </tr>
+            {items.map((item, idx) => (
+              <div key={idx} className="stk-transfer-item-row">
+                <select
+                  className="stk-select"
+                  value={item.productId}
+                  onChange={(e) => {
+                    const selected = products.find(
+                      (p) => p.id === e.target.value,
+                    );
+                    if (selected)
+                      updateItem(idx, {
+                        productId: selected.id,
+                        productName: selected.name,
+                      });
+                  }}
+                >
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  className="stk-input"
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    updateItem(idx, {
+                      quantity: Math.max(1, parseInt(e.target.value) || 1),
+                    })
+                  }
+                />
+
+                <button
+                  type="button"
+                  className="stk-link-btn stk-remove-item-btn"
+                  onClick={() =>
+                    items.length > 1 &&
+                    setItems(items.filter((_, i) => i !== idx))
+                  }
+                >
+                  &times;
+                </button>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          <div className="stk-field">
+            <label>Notes</label>
+            <input
+              className="stk-input"
+              placeholder="Transfer remarks..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+
+          <div className="stk-actions-row">
+            <button type="submit" className="stk-btn stk-btn--primary">
+              Submit Transfer
+            </button>
+            <button
+              type="button"
+              className="stk-btn stk-btn--ghost"
+              onClick={handleBack}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

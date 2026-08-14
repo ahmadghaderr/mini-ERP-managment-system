@@ -1,7 +1,7 @@
-import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { hasPermission } from '../permissions/permissions';
 import type { Role, Action } from '../permissions/permissions';
-import './applayout.css';
+import './AppLayout.css';
 
 interface NavItem {
   to: string;
@@ -16,7 +16,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/inventory', label: 'Inventory', requires: 'inventory:view' },
   { to: '/ledger', label: 'Ledger', requires: 'ledger:view' },
   { to: '/invoices', label: 'Supplier Invoices', requires: 'invoices:view' },
-  { to: '/supplier-orders', label: 'Supplier Orders', requires: 'supplier-orders:view' },
   { to: '/orders', label: 'Customer Orders', requires: 'orders:view' },
   { to: '/transfers', label: 'Transfers', requires: 'transfers:view' },
 ];
@@ -25,6 +24,7 @@ export default function AppLayout() {
   const userJson = localStorage.getItem('currentUser');
   const user = userJson ? JSON.parse(userJson) : null;
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -41,10 +41,17 @@ export default function AppLayout() {
     (item) => !item.requires || hasPermission(role, item.requires)
   );
 
+  const allNavItems = hasPermission(role, 'users:manage')
+    ? [...visibleNavItems, { to: '/users', label: 'Users' }]
+    : visibleNavItems;
+
+  const currentPage =
+    allNavItems.find((item) => location.pathname.startsWith(item.to))?.label ?? 'Dashboard';
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(word => word[0])
+      .map((word) => word[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -55,7 +62,7 @@ export default function AppLayout() {
       <aside className="sidebar">
         <div className="sidebar-logo">Mini ERP</div>
         <nav className="sidebar-nav">
-          {visibleNavItems.map((item) => (
+          {allNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -64,14 +71,6 @@ export default function AppLayout() {
               {item.label}
             </NavLink>
           ))}
-          {hasPermission(role, 'users:manage') && (
-            <NavLink
-              to="/users"
-              className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
-            >
-              Users
-            </NavLink>
-          )}
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user-info">
@@ -88,13 +87,11 @@ export default function AppLayout() {
         <header className="topbar">
           <div className="topbar-left">
             <div className="topbar-breadcrumb">
-               <span>Dashboard</span>
+              <span className="topbar-breadcrumb-eyebrow">Mini ERP</span>
+              <span className="topbar-breadcrumb-page">{currentPage}</span>
             </div>
           </div>
           <div className="topbar-right">
-            <div className="topbar-search">
-              <input type="text" placeholder="Search..." />
-            </div>
             <div className="topbar-user">
               <div className="topbar-user-avatar">{getInitials(user.fullName)}</div>
               <div className="topbar-user-info">
@@ -108,13 +105,6 @@ export default function AppLayout() {
           </div>
         </header>
         <main className="page-content">
-          <div className="page-header">
-            <h1 className="page-title">Welcome back, {user.fullName}</h1>
-            <div className="page-actions">
-              <button className="page-action-btn secondary">Export</button>
-              <button className="page-action-btn primary">+ New</button>
-            </div>
-          </div>
           <Outlet />
         </main>
       </div>
