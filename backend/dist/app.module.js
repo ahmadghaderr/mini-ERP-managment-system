@@ -8,16 +8,55 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
-const app_controller_1 = require("./app.controller");
-const app_service_1 = require("./app.service");
+const config_1 = require("@nestjs/config");
+const typeorm_1 = require("@nestjs/typeorm");
+const users_module_1 = require("./modules/users/users.module");
+const warehouses_module_1 = require("./modules/warehouse/warehouses.module");
+const products_module_1 = require("./modules/products/products.module");
+const stock_module_1 = require("./modules/stock/stock.module");
+const transfers_module_1 = require("./modules/transfers/transfers.module");
+const supplier_invoices_module_1 = require("./modules/supplier-invoices/supplier-invoices.module");
+const customer_orders_module_1 = require("./modules/customer-orders/customer-orders.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [],
-        controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        imports: [
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+                envFilePath: '.env',
+            }),
+            typeorm_1.TypeOrmModule.forRootAsync({
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: (configService) => {
+                    const host = configService.get('DB_HOST') || '127.0.0.1';
+                    const port = Number(configService.get('DB_PORT')) || 5433;
+                    const username = configService.get('DB_USERNAME') || 'postgres';
+                    const password = configService.get('DB_PASSWORD') || 'postgres';
+                    const database = configService.get('DB_NAME') || 'mini_ERP_system';
+                    return {
+                        type: 'postgres',
+                        host,
+                        port,
+                        username,
+                        password,
+                        database,
+                        autoLoadEntities: true,
+                        synchronize: false,
+                        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+                    };
+                },
+            }),
+            users_module_1.UsersModule,
+            warehouses_module_1.WarehousesModule,
+            products_module_1.ProductsModule,
+            stock_module_1.StockModule,
+            transfers_module_1.TransfersModule,
+            supplier_invoices_module_1.SupplierInvoicesModule,
+            customer_orders_module_1.CustomerOrdersModule,
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
