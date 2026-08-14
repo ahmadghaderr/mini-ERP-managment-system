@@ -1,81 +1,132 @@
-import { useState } from 'react';
-import '../shared/pages.css';
+import { useState } from "react";
+import "./stock.css";
+import type { LedgerEntry } from "../../types/stock";
 
-type Reason =
-  | 'invoice_delivered' | 'order_delivered' | 'transfer_out' | 'transfer_in' | 'adjustment';
-
-interface Movement {
-  id: string;
-  date: string;
-  product: string;
-  warehouse: string;
-  quantityChange: number;  // signed
-  reason: Reason;
-}
-
-// TODO: fetch from GET /stock-movements
-const mockMovements: Movement[] = [
-  { id: 'm-1', date: '2026-08-06', product: 'First Aid Kit', warehouse: 'Main', quantityChange: 15, reason: 'invoice_delivered' },
-  { id: 'm-2', date: '2026-08-07', product: 'Canned Beans', warehouse: 'Main', quantityChange: -40, reason: 'order_delivered' },
-  { id: 'm-3', date: '2026-08-08', product: 'Bottled Water 500ml', warehouse: 'North', quantityChange: -30, reason: 'transfer_out' },
-  { id: 'm-4', date: '2026-08-08', product: 'Bottled Water 500ml', warehouse: 'Main', quantityChange: 30, reason: 'transfer_in' },
-  { id: 'm-5', date: '2026-08-09', product: 'First Aid Kit', warehouse: 'Main', quantityChange: -2, reason: 'adjustment' },
+export const mockLedgerEntries: LedgerEntry[] = [
+  {
+    id: "led-01",
+    transferId: "tr-101",
+    timestamp: "2026-08-10 10:00",
+    productName: "Bottled Water 500ml",
+    quantity: 100,
+    fromWarehouse: "Main Warehouse",
+    toWarehouse: "North Branch",
+    performedBy: "Ahmad Ghader",
+    type: "TRANSFER_OUT",
+  },
+  {
+    id: "led-02",
+    transferId: "tr-102",
+    timestamp: "2026-08-11 14:30",
+    productName: "Canned Beans",
+    quantity: 50,
+    fromWarehouse: "Main Warehouse",
+    toWarehouse: "South Hub",
+    performedBy: "Ahmad Ghader",
+    type: "TRANSFER_IN",
+  },
 ];
 
-const REASONS: (Reason | 'all')[] =
-  ['all', 'invoice_delivered', 'order_delivered', 'transfer_out', 'transfer_in', 'adjustment'];
+interface LedgerProps {
+  entries?: LedgerEntry[];
+}
 
-export default function StockLedger() {
-  const [warehouse, setWarehouse] = useState('all');
-  const [reason, setReason] = useState<Reason | 'all'>('all');
+const TYPE_LABELS: Record<LedgerEntry["type"], string> = {
+  TRANSFER_IN: "TRANSFER IN",
+  TRANSFER_OUT: "TRANSFER OUT",
+  ADJUSTMENT_IN: "ADJUSTMENT IN",
+  ADJUSTMENT_OUT: "ADJUSTMENT OUT",
+};
 
-  const rows = mockMovements.filter(
-    (m) =>
-      (warehouse === 'all' || m.warehouse === warehouse) &&
-      (reason === 'all' || m.reason === reason),
+const TYPE_BADGE: Record<LedgerEntry["type"], string> = {
+  TRANSFER_IN: "stk-badge--success",
+  TRANSFER_OUT: "stk-badge--info",
+  ADJUSTMENT_IN: "stk-badge--success",
+  ADJUSTMENT_OUT: "stk-badge--warning",
+};
+
+export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
+  const [search, setSearch] = useState("");
+
+  const filteredEntries = entries.filter(
+    (e) =>
+      e.productName.toLowerCase().includes(search.toLowerCase()) ||
+      (e.transferId ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.fromWarehouse ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.toWarehouse ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
-    <div className="pg">
-      <div className="pg-head">
-        <div>
-          <div className="pg-title">Stock movement ledger</div>
+    <div className="stk-card">
+      <div
+        className="stk-card-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div className="stk-card-title">Transfer Ledger Audit</div>
+        <div className="stk-field" style={{ margin: 0, flex: "0 1 240px" }}>
+          <input
+            className="stk-input"
+            type="text"
+            placeholder="Search audit log..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="filters">
-        <div className="field">
-          <label>Warehouse</label>
-          <select className="select" value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
-            <option value="all">All</option>
-            <option>Main</option><option>North</option><option>South</option>
-          </select>
-        </div>
-        <div className="field">
-          <label>Reason</label>
-          <select className="select" value={reason} onChange={(e) => setReason(e.target.value as Reason | 'all')}>
-            {REASONS.map((r) => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className="card">
-        <table className="tbl">
+      <div className="stk-tbl-wrap">
+        <table className="stk-tbl">
           <thead>
-            <tr><th>Date</th><th>Product</th><th>Warehouse</th><th>Reason</th><th>Change</th></tr>
+            <tr>
+              <th>Ledger ID</th>
+              <th>Transfer Ref</th>
+              <th>Timestamp</th>
+              <th>Product</th>
+              <th>Qty Moved</th>
+              <th>Route</th>
+              <th>Logged By</th>
+              <th>Type</th>
+            </tr>
           </thead>
           <tbody>
-            {rows.map((m) => (
-              <tr key={m.id}>
-                <td>{m.date}</td>
-                <td>{m.product}</td>
-                <td>{m.warehouse}</td>
-                <td style={{ textTransform: 'capitalize' }}>{m.reason.replace('_', ' ')}</td>
-                <td className={m.quantityChange >= 0 ? 'qty-pos' : 'qty-neg'}>
-                  {m.quantityChange > 0 ? `+${m.quantityChange}` : m.quantityChange}
+            {filteredEntries.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                  No ledger records found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredEntries.map((entry) => (
+                <tr key={entry.id}>
+                  <td style={{ fontSize: 12, fontFamily: "monospace" }}>
+                    {entry.id}
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{entry.transferId ?? "—"}</td>
+                  <td style={{ fontSize: 13 }}>{entry.timestamp}</td>
+                  <td>{entry.productName}</td>
+                  <td style={{ fontWeight: 600 }}>{entry.quantity}</td>
+                  <td style={{ fontSize: 12 }}>
+                    {entry.fromWarehouse && entry.toWarehouse
+                      ? `${entry.fromWarehouse} → ${entry.toWarehouse}`
+                      : entry.toWarehouse
+                        ? `+ ${entry.toWarehouse}`
+                        : `- ${entry.fromWarehouse}`}
+                  </td>
+                  <td style={{ fontSize: 13 }}>{entry.performedBy}</td>
+                  <td>
+                    <span className={`stk-badge ${TYPE_BADGE[entry.type]}`}>
+                      {TYPE_LABELS[entry.type]}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
