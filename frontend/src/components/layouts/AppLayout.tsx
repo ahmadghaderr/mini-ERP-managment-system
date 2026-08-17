@@ -1,7 +1,6 @@
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { hasPermission } from '../permissions/permissions';
-import { api } from '../services/api';
 import type { CurrentUser, NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
 import './AppLayout.css';
 
