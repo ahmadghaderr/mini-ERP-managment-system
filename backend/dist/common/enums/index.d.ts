@@ -1,5 +1,6 @@
 export declare enum UserRole {
     ADMIN = "admin",
+    MANAGER = "manager",
     STAFF = "staff"
 }
 export declare enum ProductCategory {
@@ -26,5 +27,10 @@ export declare enum CustomerOrderStatus {
     PENDING = "pending",
     CONFIRMED = "confirmed",
     DELIVERED = "delivered",
+    REJECTED = "rejected"
+}
+export declare enum AccessRequestStatus {
+    PENDING = "pending",
+    APPROVED = "approved",
     REJECTED = "rejected"
 }

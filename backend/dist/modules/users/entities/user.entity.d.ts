@@ -3,7 +3,7 @@ export declare class User {
     id: string;
     userName: string;
     userEmail: string;
-    passwordHash: string;
+    cognitoSub: string;
     role: UserRole;
     createdAt: Date;
 }

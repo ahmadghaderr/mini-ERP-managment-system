@@ -9,6 +9,8 @@ import { StockModule } from './modules/stock/stock.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
 import { SupplierInvoicesModule } from './modules/supplier-invoices/supplier-invoices.module';
 import { CustomerOrdersModule } from './modules/customer-orders/customer-orders.module';
+import { AccessRequestsModule } from './modules/access-requests/access-requests.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { CustomerOrdersModule } from './modules/customer-orders/customer-orders.
     TransfersModule,
     SupplierInvoicesModule,
     CustomerOrdersModule,
+    AccessRequestsModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

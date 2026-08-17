@@ -13,6 +13,7 @@ import { SupplierInvoice } from './modules/supplier-invoices/entities/supplier-i
 import { SupplierInvoiceItem } from './modules/supplier-invoices/entities/supplier-invoice-item.entity';
 import { CustomerOrder } from './modules/customer-orders/entities/customer-order.entity';
 import { CustomerOrderItem } from './modules/customer-orders/entities/customer-order-item.entity';
+import { AccessRequest } from './modules/access-requests/entities/access-request.entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -32,6 +33,7 @@ export default new DataSource({
     SupplierInvoiceItem,
     CustomerOrder,
     CustomerOrderItem,
+    AccessRequest,
   ],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,

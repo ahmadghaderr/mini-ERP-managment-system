@@ -11,13 +11,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
-const class_transformer_1 = require("class-transformer");
 const enums_1 = require("../../../common/enums");
 let User = class User {
     id;
     userName;
     userEmail;
-    passwordHash;
+    cognitoSub;
     role;
     createdAt;
 };
@@ -35,10 +34,9 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "userEmail", void 0);
 __decorate([
-    (0, class_transformer_1.Exclude)(),
-    (0, typeorm_1.Column)({ name: 'password_hash', type: 'varchar', length: 255 }),
+    (0, typeorm_1.Column)({ name: 'cognito_sub', type: 'varchar', length: 255, unique: true }),
     __metadata("design:type", String)
-], User.prototype, "passwordHash", void 0);
+], User.prototype, "cognitoSub", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: enums_1.UserRole, default: enums_1.UserRole.STAFF }),
     __metadata("design:type", String)

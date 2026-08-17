@@ -1,5 +1,6 @@
 export enum UserRole {
   ADMIN = 'admin',
+  MANAGER = 'manager',
   STAFF = 'staff',
 }
 
@@ -30,5 +31,11 @@ export enum CustomerOrderStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
   DELIVERED = 'delivered',
+  REJECTED = 'rejected',
+}
+
+export enum AccessRequestStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
   REJECTED = 'rejected',
 }

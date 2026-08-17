@@ -7,6 +7,7 @@ export declare class UsersService {
     constructor(userRepo: Repository<User>);
     findAll(): Promise<User[]>;
     findOne(id: string): Promise<User>;
+    findByCognitoSub(cognitoSub: string): Promise<User>;
     create(data: CreateUserDto): Promise<User>;
     update(id: string, data: UpdateUserDto): Promise<User>;
     remove(id: string): Promise<void>;

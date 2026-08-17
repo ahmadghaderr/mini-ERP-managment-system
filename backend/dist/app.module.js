@@ -17,6 +17,8 @@ const stock_module_1 = require("./modules/stock/stock.module");
 const transfers_module_1 = require("./modules/transfers/transfers.module");
 const supplier_invoices_module_1 = require("./modules/supplier-invoices/supplier-invoices.module");
 const customer_orders_module_1 = require("./modules/customer-orders/customer-orders.module");
+const access_requests_module_1 = require("./modules/access-requests/access-requests.module");
+const auth_module_1 = require("./auth/auth.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -56,6 +58,8 @@ exports.AppModule = AppModule = __decorate([
             transfers_module_1.TransfersModule,
             supplier_invoices_module_1.SupplierInvoicesModule,
             customer_orders_module_1.CustomerOrdersModule,
+            access_requests_module_1.AccessRequestsModule,
+            auth_module_1.AuthModule,
         ],
     })
 ], AppModule);

@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CustomerOrderStatus = exports.SupplierInvoiceStatus = exports.StockMovementReason = exports.ProductCategory = exports.UserRole = void 0;
+exports.AccessRequestStatus = exports.CustomerOrderStatus = exports.SupplierInvoiceStatus = exports.StockMovementReason = exports.ProductCategory = exports.UserRole = void 0;
 var UserRole;
 (function (UserRole) {
     UserRole["ADMIN"] = "admin";
+    UserRole["MANAGER"] = "manager";
     UserRole["STAFF"] = "staff";
 })(UserRole || (exports.UserRole = UserRole = {}));
 var ProductCategory;
@@ -36,4 +37,10 @@ var CustomerOrderStatus;
     CustomerOrderStatus["DELIVERED"] = "delivered";
     CustomerOrderStatus["REJECTED"] = "rejected";
 })(CustomerOrderStatus || (exports.CustomerOrderStatus = CustomerOrderStatus = {}));
+var AccessRequestStatus;
+(function (AccessRequestStatus) {
+    AccessRequestStatus["PENDING"] = "pending";
+    AccessRequestStatus["APPROVED"] = "approved";
+    AccessRequestStatus["REJECTED"] = "rejected";
+})(AccessRequestStatus || (exports.AccessRequestStatus = AccessRequestStatus = {}));
 //# sourceMappingURL=index.js.map

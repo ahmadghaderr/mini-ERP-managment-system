@@ -13,6 +13,7 @@ const supplier_invoice_entity_1 = require("./modules/supplier-invoices/entities/
 const supplier_invoice_item_entity_1 = require("./modules/supplier-invoices/entities/supplier-invoice-item.entity");
 const customer_order_entity_1 = require("./modules/customer-orders/entities/customer-order.entity");
 const customer_order_item_entity_1 = require("./modules/customer-orders/entities/customer-order-item.entity");
+const access_request_entity_1 = require("./modules/access-requests/entities/access-request.entity");
 exports.default = new typeorm_1.DataSource({
     type: 'postgres',
     host: process.env.DB_HOST || '127.0.0.1',
@@ -31,6 +32,7 @@ exports.default = new typeorm_1.DataSource({
         supplier_invoice_item_entity_1.SupplierInvoiceItem,
         customer_order_entity_1.CustomerOrder,
         customer_order_item_entity_1.CustomerOrderItem,
+        access_request_entity_1.AccessRequest,
     ],
     migrations: ['src/migrations/*.ts'],
     synchronize: false,
