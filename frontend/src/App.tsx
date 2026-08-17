@@ -13,6 +13,8 @@ import StockTransfer from './components/stock/transfer';
 import Warehouses from './components/warehouse/warehouse';
 import Products from './components/products/products';  
 import Users from './components/users/userList';
+import RequestAccess from './components/access-requests/requestAccess';
+import PendingRequests from './components/access-requests/pendingRequests';
 
 export default function App() {
   return (
@@ -32,6 +34,8 @@ export default function App() {
           <Route path="/transfers" element={<StockTransfer />} />
           <Route path="/users" element={<Users />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/access-requests" element={<PendingRequests />} />
+          <Route path="/request-access" element={<RequestAccess />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

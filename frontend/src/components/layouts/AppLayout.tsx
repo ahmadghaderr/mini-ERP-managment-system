@@ -1,13 +1,9 @@
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { hasPermission } from '../permissions/permissions';
-import type { Role, Action } from '../permissions/permissions';
+import { api } from '../services/api';
+import type { CurrentUser, NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
 import './AppLayout.css';
-
-interface NavItem {
-  to: string;
-  label: string;
-  requires?: Action;
-}
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -20,20 +16,65 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/transfers', label: 'Transfers', requires: 'transfers:view' },
 ];
 
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function UserAvatar({ name, variant }: UserAvatarProps) {
+  const className = variant === 'sidebar' ? 'sidebar-avatar' : 'topbar-user-avatar';
+  return <div className={className}>{getInitials(name)}</div>;
+}
+
+function UserSummary({ name, role, variant }: UserSummaryProps) {
+  const nameClass = variant === 'sidebar' ? 'sidebar-user-name' : 'topbar-user-name';
+  const roleClass = variant === 'sidebar' ? 'sidebar-user-role' : 'topbar-user-role';
+  return (
+    <>
+      <span className={nameClass}>{name}</span>
+      <span className={roleClass}>{role}</span>
+    </>
+  );
+}
+
 export default function AppLayout() {
-  const userJson = localStorage.getItem('currentUser');
-  const user = userJson ? JSON.parse(userJson) : null;
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    api
+      .get('/auth/me')
+      .then((response) => setUser(response.data))
+      .catch(() => {
+        localStorage.removeItem('accessToken');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  const role = user.role as Role;
+  const role = user.role;
 
   function handleLogout() {
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('accessToken');
     navigate('/login');
   }
 
@@ -47,15 +88,6 @@ export default function AppLayout() {
 
   const currentPage =
     allNavItems.find((item) => location.pathname.startsWith(item.to))?.label ?? 'Dashboard';
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   return (
     <div className="app-layout">
@@ -74,10 +106,9 @@ export default function AppLayout() {
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user-info">
-            <div className="sidebar-avatar">{getInitials(user.fullName)}</div>
+            <UserAvatar name={user.userName} variant="sidebar" />
             <div className="sidebar-user-details">
-              <span className="sidebar-user-name">{user.fullName}</span>
-              <span className="sidebar-user-role">{user.role}</span>
+              <UserSummary name={user.userName} role={user.role} variant="sidebar" />
             </div>
           </div>
         </div>
@@ -93,10 +124,9 @@ export default function AppLayout() {
           </div>
           <div className="topbar-right">
             <div className="topbar-user">
-              <div className="topbar-user-avatar">{getInitials(user.fullName)}</div>
+              <UserAvatar name={user.userName} variant="topbar" />
               <div className="topbar-user-info">
-                <span className="topbar-user-name">{user.fullName}</span>
-                <span className="topbar-user-role">{user.role}</span>
+                <UserSummary name={user.userName} role={user.role} variant="topbar" />
               </div>
               <button className="topbar-logout" onClick={handleLogout}>
                 Logout
