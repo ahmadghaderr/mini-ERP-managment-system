@@ -1,13 +1,9 @@
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { decodeToken } from '../../lib/cognito';
 import { hasPermission } from '../permissions/permissions';
-import type { Role, Action } from '../permissions/permissions';
+import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
+import type { Role } from '../permissions/permissions';
 import './AppLayout.css';
-
-interface NavItem {
-  to: string;
-  label: string;
-  requires?: Action;
-}
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -20,20 +16,49 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/transfers', label: 'Transfers', requires: 'transfers:view' },
 ];
 
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function UserAvatar({ name, variant }: UserAvatarProps) {
+  const className = variant === 'sidebar' ? 'sidebar-avatar' : 'topbar-user-avatar';
+  return <div className={className}>{getInitials(name)}</div>;
+}
+
+function UserSummary({ name, role, variant }: UserSummaryProps) {
+  const nameClass = variant === 'sidebar' ? 'sidebar-user-name' : 'topbar-user-name';
+  const roleClass = variant === 'sidebar' ? 'sidebar-user-role' : 'topbar-user-role';
+  return (
+    <>
+      <span className={nameClass}>{name}</span>
+      <span className={roleClass}>{role}</span>
+    </>
+  );
+}
+
 export default function AppLayout() {
-  const userJson = localStorage.getItem('currentUser');
-  const user = userJson ? JSON.parse(userJson) : null;
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!user) {
+  const idToken = localStorage.getItem('idToken');
+  if (!idToken) {
     return <Navigate to="/login" replace />;
   }
 
-  const role = user.role as Role;
+  const payload = decodeToken(idToken);
+  const email = (payload.email as string) ?? 'unknown';
+  const groups = (payload['cognito:groups'] as string[]) ?? [];
+  const role = (groups[0] ?? 'staff') as Role;
+  const displayName = email.split('@')[0];
 
   function handleLogout() {
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('idToken');
     navigate('/login');
   }
 
@@ -47,15 +72,6 @@ export default function AppLayout() {
 
   const currentPage =
     allNavItems.find((item) => location.pathname.startsWith(item.to))?.label ?? 'Dashboard';
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   return (
     <div className="app-layout">
@@ -74,10 +90,9 @@ export default function AppLayout() {
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user-info">
-            <div className="sidebar-avatar">{getInitials(user.fullName)}</div>
+            <UserAvatar name={displayName} variant="sidebar" />
             <div className="sidebar-user-details">
-              <span className="sidebar-user-name">{user.fullName}</span>
-              <span className="sidebar-user-role">{user.role}</span>
+              <UserSummary name={displayName} role={role} variant="sidebar" />
             </div>
           </div>
         </div>
@@ -93,10 +108,9 @@ export default function AppLayout() {
           </div>
           <div className="topbar-right">
             <div className="topbar-user">
-              <div className="topbar-user-avatar">{getInitials(user.fullName)}</div>
+              <UserAvatar name={displayName} variant="topbar" />
               <div className="topbar-user-info">
-                <span className="topbar-user-name">{user.fullName}</span>
-                <span className="topbar-user-role">{user.role}</span>
+                <UserSummary name={displayName} role={role} variant="topbar" />
               </div>
               <button className="topbar-logout" onClick={handleLogout}>
                 Logout

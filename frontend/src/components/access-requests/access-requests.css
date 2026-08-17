@@ -1,0 +1,207 @@
+.acr-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa;
+  padding: 16px;
+}
+
+.acr-card {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.acr-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.acr-subtitle {
+  font-size: 14px;
+  color: #718096;
+  margin: 0 0 24px;
+}
+
+.acr-field {
+  margin-bottom: 16px;
+}
+
+.acr-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.acr-input,
+.acr-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+}
+
+.acr-input:focus,
+.acr-select:focus {
+  border-color: #667eea;
+}
+
+.acr-error {
+  background: #fff5f5;
+  color: #c53030;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.acr-button {
+  width: 100%;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #667eea;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.acr-button:hover {
+  background: #5a67d8;
+}
+
+.acr-button:disabled {
+  opacity: 0.6;
+}
+
+.acr-link {
+  display: block;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #667eea;
+  text-decoration: none;
+}
+
+.acr-link:hover {
+  text-decoration: underline;
+}
+
+.acr-card.acr-list-card {
+  max-width: 100%;
+}
+
+.acr-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #edf2f7;
+  background: #fafbfc;
+}
+
+.acr-card-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.acr-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.acr-tbl th,
+.acr-tbl td {
+  text-align: left;
+  padding: 12px 20px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.acr-tbl th {
+  background: #f7fafc;
+  color: #4a5568;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.acr-row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.acr-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.acr-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.acr-btn--primary {
+  background: #667eea;
+  color: #fff;
+}
+
+.acr-btn--danger {
+  background: #fff5f5;
+  color: #c53030;
+  border-color: #feb2b2;
+}
+
+.acr-link-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.acr-approve-panel {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: #fafbfc;
+  border-radius: 6px;
+}
+
+.acr-approve-panel .acr-field {
+  margin-bottom: 0;
+  min-width: 180px;
+}
+
+.acr-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.acr-badge--approved {
+  background: #f0fff4;
+  color: #276749;
+}
+
+.acr-badge--rejected {
+  background: #fff5f5;
+  color: #c53030;
+}
