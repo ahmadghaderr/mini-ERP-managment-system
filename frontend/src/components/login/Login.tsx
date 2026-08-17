@@ -40,6 +40,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
+          <div className="login-logo-icon">M</div>
           <h1 className="login-title">Mini ERP</h1>
           <p className="login-subtitle">Smart warehouse management</p>
         </div>
@@ -53,7 +54,7 @@ export default function Login() {
               <input
                 type="email"
                 className="login-input"
-                placeholder="test@gmail.com"
+                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -68,7 +69,7 @@ export default function Login() {
               <input
                 type="password"
                 className="login-input"
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
