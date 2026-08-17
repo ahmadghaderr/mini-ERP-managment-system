@@ -6,6 +6,7 @@ export type Action =
   | 'products:view'
   | 'products:manage'
   | 'inventory:view'
+  | 'inventory:adjust'
   | 'ledger:view'
   | 'invoices:view'
   | 'invoices:upload'
@@ -26,6 +27,7 @@ const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
     'warehouses:view',
     'products:view',
     'inventory:view',
+    'inventory:adjust',
     'ledger:view',
     'invoices:view',
     'invoices:approve',

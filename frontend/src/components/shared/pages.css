@@ -1,0 +1,84 @@
+:root {
+  --primary: #667eea;
+  --primary-hover: #5a67d8;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --primary-shadow: rgba(102, 126, 234, 0.25);
+  --primary-shadow-hover: rgba(4, 43, 215, 0.4);
+  --bg-page: #f1f4f9;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #fafbfc;
+  --bg-surface-hover: #f7fafc;
+  --border-color: #e2e8f0;
+  --border-color-subtle: #edf2f7;
+  --border-color-hover: #cbd5e0;
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-subtle: #a0aec0;
+  --danger-bg: #fff5f5;
+  --danger-bg-hover: #fed7d7;
+  --danger-text: #c53030;
+  --danger-border: #feb2b2;
+  --success-bg: #f0fff4;
+  --success-bg-hover: #c6f6d5;
+  --success-text: #276749;
+  --success-border: #9ae6b4;
+  --info-bg: #ebf4ff;
+  --info-border: #c3dafe;
+  --info-text: #2c5282;
+  --warning-bg: #fffbeb;
+  --warning-text: #975a16;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.35s ease;
+}
+
+[data-theme="dark"] {
+  --bg-page: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-subtle: #182234;
+  --bg-surface-hover: #2d3a52;
+  --border-color: #334155;
+  --border-color-subtle: #1e293b;
+  --border-color-hover: #475569;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --danger-bg: rgba(197, 48, 48, 0.15);
+  --danger-bg-hover: rgba(197, 48, 48, 0.25);
+  --danger-text: #fca5a5;
+  --danger-border: rgba(254, 178, 178, 0.2);
+  --success-bg: rgba(39, 103, 73, 0.15);
+  --success-bg-hover: rgba(39, 103, 73, 0.25);
+  --success-text: #86efac;
+  --success-border: rgba(154, 230, 180, 0.2);
+  --info-bg: rgba(44, 82, 130, 0.15);
+  --info-border: rgba(195, 218, 254, 0.2);
+  --info-text: #93c5fd;
+  --warning-bg: rgba(151, 90, 22, 0.15);
+  --warning-text: #fcd34d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
