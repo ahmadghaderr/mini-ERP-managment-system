@@ -13,6 +13,7 @@ export interface LoginResult {
   challenge?: 'NEW_PASSWORD_REQUIRED';
   session?: string;
   accessToken?: string;
+  idToken?: string;
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
@@ -31,14 +32,17 @@ export async function login(email: string, password: string): Promise<LoginResul
     return { challenge: 'NEW_PASSWORD_REQUIRED', session: result.Session };
   }
 
-  return { accessToken: result.AuthenticationResult?.AccessToken };
+  return {
+    accessToken: result.AuthenticationResult?.AccessToken,
+    idToken: result.AuthenticationResult?.IdToken,
+  };
 }
 
 export async function completeNewPassword(
   email: string,
   newPassword: string,
   session: string,
-): Promise<string | undefined> {
+): Promise<{ accessToken?: string; idToken?: string }> {
   const result = await client.send(
     new RespondToAuthChallengeCommand({
       ClientId: CLIENT_ID,
@@ -51,5 +55,17 @@ export async function completeNewPassword(
     }),
   );
 
-  return result.AuthenticationResult?.AccessToken;
+  return {
+    accessToken: result.AuthenticationResult?.AccessToken,
+    idToken: result.AuthenticationResult?.IdToken,
+  };
+}
+
+// Decodes a JWT's payload without verifying the signature.
+// Fine for reading our own token's claims client-side — the token itself
+// was already verified by Cognito when it was issued.
+export function decodeToken(token: string): Record<string, unknown> {
+  const payload = token.split('.')[1];
+  const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+  return JSON.parse(decoded);
 }

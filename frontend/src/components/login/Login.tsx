@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { login, completeNewPassword } from '../../lib/cognito';
-import type { AuthFieldProps, AuthCardProps } from '../types/auth';
-import './Login.css';
+import { useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { login, completeNewPassword } from "../../lib/cognito";
+import type { AuthFieldProps, AuthCardProps } from "../../types/auth";
+import "./Login.css";
 
 function AuthField({ label, type, value, onChange, required }: AuthFieldProps) {
   return (
@@ -34,52 +34,56 @@ function AuthCard({ title, subtitle, error, children }: AuthCardProps) {
 }
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [session, setSession] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const result = await login(email, password);
 
-      if (result.challenge === 'NEW_PASSWORD_REQUIRED' && result.session) {
+      if (result.challenge === "NEW_PASSWORD_REQUIRED" && result.session) {
         setSession(result.session);
         setLoading(false);
         return;
       }
 
-      if (result.accessToken) {
-        localStorage.setItem('accessToken', result.accessToken);
-        navigate('/dashboard');
+      if (result.accessToken && result.idToken) {
+        localStorage.setItem("accessToken", result.accessToken);
+        localStorage.setItem("idToken", result.idToken);
+        navigate("/dashboard");
       }
     } catch {
-      setError('Incorrect email or password.');
+      setError("Incorrect email or password.");
       setLoading(false);
     }
   }
 
   async function handleSetNewPassword(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       if (!session) return;
-      const accessToken = await completeNewPassword(email, newPassword, session);
-      if (accessToken) {
-        localStorage.setItem('accessToken', accessToken);
-        navigate('/dashboard');
+      const result = await completeNewPassword(email, newPassword, session);
+      if (result.accessToken && result.idToken) {
+        localStorage.setItem("accessToken", result.accessToken);
+        localStorage.setItem("idToken", result.idToken);
+        navigate("/dashboard");
       }
     } catch {
-      setError('Could not set new password. Make sure it meets the requirements.');
+      setError(
+        "Could not set new password. Make sure it meets the requirements.",
+      );
       setLoading(false);
     }
   }
@@ -92,9 +96,15 @@ export default function Login() {
         error={error}
       >
         <form onSubmit={handleSetNewPassword}>
-          <AuthField label="New Password" type="password" value={newPassword} onChange={setNewPassword} required />
+          <AuthField
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+            required
+          />
           <button type="submit" className="login-button" disabled={loading}>
-            {loading ? 'Setting password...' : 'Set password'}
+            {loading ? "Setting password..." : "Set password"}
           </button>
         </form>
       </AuthCard>
@@ -104,10 +114,22 @@ export default function Login() {
   return (
     <AuthCard title="Mini ERP" subtitle="Sign in to your account" error={error}>
       <form onSubmit={handleLogin}>
-        <AuthField label="Email" type="email" value={email} onChange={setEmail} required />
-        <AuthField label="Password" type="password" value={password} onChange={setPassword} required />
+        <AuthField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          required
+        />
+        <AuthField
+          label="Password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          required
+        />
         <button type="submit" className="login-button" disabled={loading}>
-          {loading ? 'Logging in...' : 'Log in'}
+          {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
     </AuthCard>

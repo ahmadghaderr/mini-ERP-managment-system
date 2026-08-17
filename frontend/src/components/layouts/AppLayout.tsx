@@ -1,7 +1,8 @@
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { decodeToken } from '../../lib/cognito';
 import { hasPermission } from '../permissions/permissions';
-import type { CurrentUser, NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
+import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
+import type { Role } from '../permissions/permissions';
 import './AppLayout.css';
 
 const NAV_ITEMS: NavItem[] = [
@@ -41,39 +42,23 @@ function UserSummary({ name, role, variant }: UserSummaryProps) {
 }
 
 export default function AppLayout() {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    api
-      .get('/auth/me')
-      .then((response) => setUser(response.data))
-      .catch(() => {
-        localStorage.removeItem('accessToken');
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
-  }
-
-  if (!user) {
+  const idToken = localStorage.getItem('idToken');
+  if (!idToken) {
     return <Navigate to="/login" replace />;
   }
 
-  const role = user.role;
+  const payload = decodeToken(idToken);
+  const email = (payload.email as string) ?? 'unknown';
+  const groups = (payload['cognito:groups'] as string[]) ?? [];
+  const role = (groups[0] ?? 'staff') as Role;
+  const displayName = email.split('@')[0];
 
   function handleLogout() {
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('idToken');
     navigate('/login');
   }
 
@@ -105,9 +90,9 @@ export default function AppLayout() {
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user-info">
-            <UserAvatar name={user.userName} variant="sidebar" />
+            <UserAvatar name={displayName} variant="sidebar" />
             <div className="sidebar-user-details">
-              <UserSummary name={user.userName} role={user.role} variant="sidebar" />
+              <UserSummary name={displayName} role={role} variant="sidebar" />
             </div>
           </div>
         </div>
@@ -123,9 +108,9 @@ export default function AppLayout() {
           </div>
           <div className="topbar-right">
             <div className="topbar-user">
-              <UserAvatar name={user.userName} variant="topbar" />
+              <UserAvatar name={displayName} variant="topbar" />
               <div className="topbar-user-info">
-                <UserSummary name={user.userName} role={user.role} variant="topbar" />
+                <UserSummary name={displayName} role={role} variant="topbar" />
               </div>
               <button className="topbar-logout" onClick={handleLogout}>
                 Logout

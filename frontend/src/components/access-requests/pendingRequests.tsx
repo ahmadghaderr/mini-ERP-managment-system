@@ -1,23 +1,21 @@
-import { useState, useEffect } from 'react';
-import './access-requests.css';
+import { useState, useEffect } from "react";
+import {
+  fetchAccessRequests,
+  approveAccessRequest,
+  rejectAccessRequest,
+} from "../../services/accessRequests";
+import type { AccessRequest } from "../../types/accessRequests";
+import "./access-requests.css";
 
-interface AccessRequest {
-  id: string;
-  email: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requestedAt: string;
-  reviewedAt: string | null;
-}
-
-const ROLES = ['admin', 'manager', 'staff'];
+const ROLES = ["admin", "manager", "staff"];
 
 export default function PendingRequests() {
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [userName, setUserName] = useState('');
-  const [role, setRole] = useState('staff');
-  const [actionError, setActionError] = useState('');
+  const [userName, setUserName] = useState("");
+  const [role, setRole] = useState("staff");
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     loadRequests();
@@ -26,8 +24,8 @@ export default function PendingRequests() {
   async function loadRequests() {
     setLoading(true);
     try {
-      const response = await api.get('/access-requests');
-      setRequests(response.data);
+      const data = await fetchAccessRequests();
+      setRequests(data);
     } finally {
       setLoading(false);
     }
@@ -35,19 +33,19 @@ export default function PendingRequests() {
 
   function openApprove(id: string) {
     setApprovingId(id);
-    setUserName('');
-    setRole('staff');
-    setActionError('');
+    setUserName("");
+    setRole("staff");
+    setActionError("");
   }
 
   async function submitApprove(id: string) {
     if (!userName.trim()) {
-      setActionError('Please enter a name.');
+      setActionError("Please enter a name.");
       return;
     }
-    setActionError('');
+    setActionError("");
     try {
-      await api.patch(`/access-requests/${id}/approve`, { userName, role });
+      await approveAccessRequest(id, { userName, role });
       setApprovingId(null);
       loadRequests();
     } catch (err) {
@@ -56,13 +54,13 @@ export default function PendingRequests() {
   }
 
   async function handleReject(id: string) {
-    if (!confirm('Reject this access request?')) return;
-    await api.patch(`/access-requests/${id}/reject`);
+    if (!confirm("Reject this access request?")) return;
+    await rejectAccessRequest(id);
     loadRequests();
   }
 
-  const pending = requests.filter((r) => r.status === 'pending');
-  const reviewed = requests.filter((r) => r.status !== 'pending');
+  const pending = requests.filter((r) => r.status === "pending");
+  const reviewed = requests.filter((r) => r.status !== "pending");
 
   if (loading) {
     return <div className="acr-page-content">Loading...</div>;
@@ -73,7 +71,9 @@ export default function PendingRequests() {
       <div className="pg-head">
         <div>
           <div className="pg-title">Pending Requests</div>
-          <p className="pg-subtitle">Review and approve new account requests.</p>
+          <p className="pg-subtitle">
+            Review and approve new account requests.
+          </p>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export default function PendingRequests() {
           <tbody>
             {pending.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', padding: 24 }}>
+                <td colSpan={3} style={{ textAlign: "center", padding: 24 }}>
                   No pending requests.
                 </td>
               </tr>
@@ -104,15 +104,24 @@ export default function PendingRequests() {
                     <td>{new Date(r.requestedAt).toLocaleDateString()}</td>
                     <td>
                       {approvingId === r.id ? (
-                        <button className="acr-link-btn" onClick={() => setApprovingId(null)}>
+                        <button
+                          className="acr-link-btn"
+                          onClick={() => setApprovingId(null)}
+                        >
                           Cancel
                         </button>
                       ) : (
                         <div className="acr-row-actions">
-                          <button className="acr-btn acr-btn--primary acr-btn-sm" onClick={() => openApprove(r.id)}>
+                          <button
+                            className="acr-btn acr-btn--primary acr-btn-sm"
+                            onClick={() => openApprove(r.id)}
+                          >
                             Approve
                           </button>
-                          <button className="acr-btn acr-btn--danger acr-btn-sm" onClick={() => handleReject(r.id)}>
+                          <button
+                            className="acr-btn acr-btn--danger acr-btn-sm"
+                            onClick={() => handleReject(r.id)}
+                          >
                             Reject
                           </button>
                         </div>
@@ -123,7 +132,9 @@ export default function PendingRequests() {
                     <tr>
                       <td colSpan={3}>
                         <div className="acr-approve-panel">
-                          {actionError && <div className="acr-error">{actionError}</div>}
+                          {actionError && (
+                            <div className="acr-error">{actionError}</div>
+                          )}
                           <div className="acr-field">
                             <label className="acr-label">Full Name</label>
                             <input
@@ -135,7 +146,11 @@ export default function PendingRequests() {
                           </div>
                           <div className="acr-field">
                             <label className="acr-label">Role</label>
-                            <select className="acr-select" value={role} onChange={(e) => setRole(e.target.value)}>
+                            <select
+                              className="acr-select"
+                              value={role}
+                              onChange={(e) => setRole(e.target.value)}
+                            >
                               {ROLES.map((roleOption) => (
                                 <option key={roleOption} value={roleOption}>
                                   {roleOption}
@@ -178,9 +193,15 @@ export default function PendingRequests() {
                 <tr key={r.id}>
                   <td>{r.email}</td>
                   <td>
-                    <span className={`acr-badge acr-badge--${r.status}`}>{r.status}</span>
+                    <span className={`acr-badge acr-badge--${r.status}`}>
+                      {r.status}
+                    </span>
                   </td>
-                  <td>{r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString() : '-'}</td>
+                  <td>
+                    {r.reviewedAt
+                      ? new Date(r.reviewedAt).toLocaleDateString()
+                      : "-"}
+                  </td>
                 </tr>
               ))}
             </tbody>
