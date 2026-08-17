@@ -57,11 +57,25 @@ let SupplierInvoicesService = class SupplierInvoicesService {
         });
         return this.invoiceRepo.save(invoice);
     }
+    async matchItem(invoiceId, itemId, matchedProductId) {
+        const item = await this.itemRepo.findOne({
+            where: { id: itemId, supplierInvoiceId: invoiceId },
+        });
+        if (!item) {
+            throw new common_1.NotFoundException(`Item ${itemId} not found on invoice ${invoiceId}`);
+        }
+        item.matchedProductId = matchedProductId;
+        return this.itemRepo.save(item);
+    }
     async confirm(id, reviewedBy) {
         const invoice = await this.findOne(id);
         if (invoice.status !== enums_1.SupplierInvoiceStatus.EXTRACTED &&
             invoice.status !== enums_1.SupplierInvoiceStatus.PENDING_EXTRACTION) {
             throw new common_1.BadRequestException(`Cannot confirm an invoice with status "${invoice.status}"`);
+        }
+        const unmatchedItem = invoice.items.find((item) => !item.matchedProductId);
+        if (unmatchedItem) {
+            throw new common_1.BadRequestException(`Cannot confirm — item "${unmatchedItem.extractedProductName}" has no matched product`);
         }
         invoice.status = enums_1.SupplierInvoiceStatus.CONFIRMED;
         invoice.confirmedAt = new Date();

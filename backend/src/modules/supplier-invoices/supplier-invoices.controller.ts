@@ -1,7 +1,17 @@
 import {
-  Controller, Get, Post, Patch, Delete, Param, Body, HttpCode,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  HttpCode,
 } from '@nestjs/common';
 import { SupplierInvoicesService } from './supplier-invoices.service';
+import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
+import { ReviewSupplierInvoiceDto } from './dto/review-supplier-invoice.dto';
+import { MatchItemDto } from './dto/match-item.dto';
 
 @Controller('supplier-invoices')
 export class SupplierInvoicesController {
@@ -18,18 +28,26 @@ export class SupplierInvoicesController {
   }
 
   @Post()
-  create(@Body() data: any) {
+  create(@Body() data: CreateSupplierInvoiceDto) {
     return this.service.create(data);
   }
 
-  // status actions — POST to a sub-path
+  @Patch(':invoiceId/items/:itemId/match')
+  matchItem(
+    @Param('invoiceId') invoiceId: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: MatchItemDto,
+  ) {
+    return this.service.matchItem(invoiceId, itemId, dto.matchedProductId);
+  }
+
   @Patch(':id/confirm')
-  confirm(@Param('id') id: string, @Body() body: { reviewedBy?: string }) {
+  confirm(@Param('id') id: string, @Body() body: ReviewSupplierInvoiceDto) {
     return this.service.confirm(id, body?.reviewedBy);
   }
 
   @Patch(':id/reject')
-  reject(@Param('id') id: string, @Body() body: { reviewedBy?: string }) {
+  reject(@Param('id') id: string, @Body() body: ReviewSupplierInvoiceDto) {
     return this.service.reject(id, body?.reviewedBy);
   }
 

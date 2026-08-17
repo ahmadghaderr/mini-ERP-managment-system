@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, Min, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  Min,
+  MaxLength,
+} from 'class-validator';
 import { ProductCategory } from '../../../common/enums';
 
 export class CreateProductDto {

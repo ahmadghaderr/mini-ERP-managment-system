@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
+const class_transformer_1 = require("class-transformer");
 const enums_1 = require("../../../common/enums");
 let User = class User {
     id;
@@ -26,15 +27,16 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'user_name', length: 150 }),
+    (0, typeorm_1.Column)({ name: 'user_name', type: 'varchar', length: 150 }),
     __metadata("design:type", String)
 ], User.prototype, "userName", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'user_email', length: 255, unique: true }),
+    (0, typeorm_1.Column)({ name: 'user_email', type: 'varchar', length: 255, unique: true }),
     __metadata("design:type", String)
 ], User.prototype, "userEmail", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'password_hash', length: 255 }),
+    (0, class_transformer_1.Exclude)(),
+    (0, typeorm_1.Column)({ name: 'password_hash', type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);
 __decorate([

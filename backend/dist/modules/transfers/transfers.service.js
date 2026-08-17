@@ -38,9 +38,6 @@ let TransfersService = class TransfersService {
         if (fromWarehouseId === toWarehouseId) {
             throw new common_1.BadRequestException('Source and destination must differ');
         }
-        if (quantity <= 0) {
-            throw new common_1.BadRequestException('Quantity must be greater than 0');
-        }
         return this.dataSource.transaction(async (manager) => {
             const source = await manager.findOne(warehouse_prouct_entity_1.WarehouseProduct, {
                 where: { warehouseId: fromWarehouseId, productId },
@@ -65,18 +62,24 @@ let TransfersService = class TransfersService {
             dest.quantityOnHand += quantity;
             await manager.save(dest);
             const transfer = manager.create(warehouse_transfer_entity_1.WarehouseTransfer, {
-                productId, fromWarehouseId, toWarehouseId, quantity, createdBy,
+                productId,
+                fromWarehouseId,
+                toWarehouseId,
+                quantity,
+                createdBy,
             });
             const savedTransfer = await manager.save(transfer);
             const outMovement = manager.create(stock_movement_entity_1.StockMovement, {
-                warehouseId: fromWarehouseId, productId,
+                warehouseId: fromWarehouseId,
+                productId,
                 quantityChange: -quantity,
                 reason: enums_1.StockMovementReason.TRANSFER_OUT,
                 referenceId: savedTransfer.id,
                 createdBy,
             });
             const inMovement = manager.create(stock_movement_entity_1.StockMovement, {
-                warehouseId: toWarehouseId, productId,
+                warehouseId: toWarehouseId,
+                productId,
                 quantityChange: quantity,
                 reason: enums_1.StockMovementReason.TRANSFER_IN,
                 referenceId: savedTransfer.id,

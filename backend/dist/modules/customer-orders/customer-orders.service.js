@@ -54,17 +54,34 @@ let CustomerOrdersService = class CustomerOrdersService {
         });
         return this.orderRepo.save(order);
     }
+    async matchItem(orderId, itemId, matchedProductId) {
+        const item = await this.itemRepo.findOne({
+            where: { id: itemId, customerOrderId: orderId },
+        });
+        if (!item) {
+            throw new common_1.NotFoundException(`Item ${itemId} not found on order ${orderId}`);
+        }
+        item.matchedProductId = matchedProductId;
+        return this.itemRepo.save(item);
+    }
     async confirm(id, reviewedBy) {
         const order = await this.findOne(id);
         if (order.status !== enums_1.CustomerOrderStatus.PENDING) {
             throw new common_1.BadRequestException(`Only pending orders can be confirmed (current: "${order.status}")`);
+        }
+        const unmatchedItem = order.items.find((item) => !item.matchedProductId);
+        if (unmatchedItem) {
+            throw new common_1.BadRequestException(`Cannot confirm — item "${unmatchedItem.extractedProductName}" has no matched product`);
         }
         return this.dataSource.transaction(async (manager) => {
             for (const item of order.items) {
                 if (!item.matchedProductId)
                     continue;
                 const stock = await manager.findOne(warehouse_prouct_entity_1.WarehouseProduct, {
-                    where: { warehouseId: order.warehouseId, productId: item.matchedProductId },
+                    where: {
+                        warehouseId: order.warehouseId,
+                        productId: item.matchedProductId,
+                    },
                 });
                 const available = (stock?.quantityOnHand ?? 0) - (stock?.quantityReserved ?? 0);
                 if (!stock || available < item.quantity) {
@@ -89,7 +106,10 @@ let CustomerOrdersService = class CustomerOrdersService {
                 if (!item.matchedProductId)
                     continue;
                 const stock = await manager.findOne(warehouse_prouct_entity_1.WarehouseProduct, {
-                    where: { warehouseId: order.warehouseId, productId: item.matchedProductId },
+                    where: {
+                        warehouseId: order.warehouseId,
+                        productId: item.matchedProductId,
+                    },
                 });
                 if (!stock)
                     continue;
@@ -118,7 +138,10 @@ let CustomerOrdersService = class CustomerOrdersService {
                     if (!item.matchedProductId)
                         continue;
                     const stock = await manager.findOne(warehouse_prouct_entity_1.WarehouseProduct, {
-                        where: { warehouseId: order.warehouseId, productId: item.matchedProductId },
+                        where: {
+                            warehouseId: order.warehouseId,
+                            productId: item.matchedProductId,
+                        },
                     });
                     if (stock) {
                         stock.quantityReserved -= item.quantity;

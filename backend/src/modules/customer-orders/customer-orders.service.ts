@@ -1,5 +1,7 @@
 import {
-  Injectable, NotFoundException, BadRequestException,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -8,13 +10,7 @@ import { CustomerOrderItem } from './entities/customer-order-item.entity';
 import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
 import { CustomerOrderStatus, StockMovementReason } from '../../common/enums';
-
-interface ItemInput {
-  extractedProductName: string;
-  matchedProductId?: string;
-  quantity: number;
-  unitPrice?: number;
-}
+import { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
 
 @Injectable()
 export class CustomerOrdersService {
@@ -42,12 +38,7 @@ export class CustomerOrdersService {
     return order;
   }
 
-  create(data: {
-    fileUrl: string;
-    warehouseId: string;
-    extractedCustomerName?: string;
-    items?: ItemInput[];
-  }): Promise<CustomerOrder> {
+  create(data: CreateCustomerOrderDto): Promise<CustomerOrder> {
     const order = this.orderRepo.create({
       fileUrl: data.fileUrl,
       warehouseId: data.warehouseId,
@@ -57,7 +48,23 @@ export class CustomerOrdersService {
     return this.orderRepo.save(order);
   }
 
-  // CONFIRM — reserves stock (doesn't remove it yet)
+  async matchItem(
+    orderId: string,
+    itemId: string,
+    matchedProductId: string,
+  ): Promise<CustomerOrderItem> {
+    const item = await this.itemRepo.findOne({
+      where: { id: itemId, customerOrderId: orderId },
+    });
+    if (!item) {
+      throw new NotFoundException(
+        `Item ${itemId} not found on order ${orderId}`,
+      );
+    }
+    item.matchedProductId = matchedProductId;
+    return this.itemRepo.save(item);
+  }
+
   async confirm(id: string, reviewedBy?: string): Promise<CustomerOrder> {
     const order = await this.findOne(id);
     if (order.status !== CustomerOrderStatus.PENDING) {
@@ -66,12 +73,22 @@ export class CustomerOrdersService {
       );
     }
 
+    const unmatchedItem = order.items.find((item) => !item.matchedProductId);
+    if (unmatchedItem) {
+      throw new BadRequestException(
+        `Cannot confirm — item "${unmatchedItem.extractedProductName}" has no matched product`,
+      );
+    }
+
     return this.dataSource.transaction(async (manager) => {
       for (const item of order.items) {
         if (!item.matchedProductId) continue;
 
         const stock = await manager.findOne(WarehouseProduct, {
-          where: { warehouseId: order.warehouseId, productId: item.matchedProductId },
+          where: {
+            warehouseId: order.warehouseId,
+            productId: item.matchedProductId,
+          },
         });
         const available =
           (stock?.quantityOnHand ?? 0) - (stock?.quantityReserved ?? 0);
@@ -80,7 +97,7 @@ export class CustomerOrdersService {
             `Not enough available stock for a product (have ${available}, need ${item.quantity})`,
           );
         }
-        stock.quantityReserved += item.quantity; // reserve, don't remove
+        stock.quantityReserved += item.quantity;
         await manager.save(stock);
       }
 
@@ -91,7 +108,6 @@ export class CustomerOrdersService {
     });
   }
 
-  // DELIVER — actually removes the reserved stock, logs movements
   async deliver(id: string): Promise<CustomerOrder> {
     const order = await this.findOne(id);
     if (order.status !== CustomerOrderStatus.CONFIRMED) {
@@ -105,11 +121,13 @@ export class CustomerOrdersService {
         if (!item.matchedProductId) continue;
 
         const stock = await manager.findOne(WarehouseProduct, {
-          where: { warehouseId: order.warehouseId, productId: item.matchedProductId },
+          where: {
+            warehouseId: order.warehouseId,
+            productId: item.matchedProductId,
+          },
         });
         if (!stock) continue;
 
-        // remove from on-hand AND release the reservation
         stock.quantityOnHand -= item.quantity;
         stock.quantityReserved -= item.quantity;
         await manager.save(stock);
@@ -117,7 +135,7 @@ export class CustomerOrdersService {
         const movement = manager.create(StockMovement, {
           warehouseId: order.warehouseId,
           productId: item.matchedProductId,
-          quantityChange: -item.quantity, // negative — stock leaving
+          quantityChange: -item.quantity,
           reason: StockMovementReason.ORDER_DELIVERED,
           referenceId: order.id,
         });
@@ -130,17 +148,18 @@ export class CustomerOrdersService {
     });
   }
 
-  // REJECT — if it was confirmed, release the reservation
   async reject(id: string, reviewedBy?: string): Promise<CustomerOrder> {
     const order = await this.findOne(id);
 
     return this.dataSource.transaction(async (manager) => {
-      // if it was already confirmed, give the reserved stock back
       if (order.status === CustomerOrderStatus.CONFIRMED) {
         for (const item of order.items) {
           if (!item.matchedProductId) continue;
           const stock = await manager.findOne(WarehouseProduct, {
-            where: { warehouseId: order.warehouseId, productId: item.matchedProductId },
+            where: {
+              warehouseId: order.warehouseId,
+              productId: item.matchedProductId,
+            },
           });
           if (stock) {
             stock.quantityReserved -= item.quantity;

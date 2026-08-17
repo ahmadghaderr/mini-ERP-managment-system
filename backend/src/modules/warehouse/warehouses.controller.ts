@@ -1,5 +1,12 @@
 import {
-  Controller, Get, Post, Patch, Delete, Param, Body, HttpCode,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  HttpCode,
 } from '@nestjs/common';
 import { WarehousesService } from './warehouses.service';
 import { Warehouse } from './entities/warehouse.entity';

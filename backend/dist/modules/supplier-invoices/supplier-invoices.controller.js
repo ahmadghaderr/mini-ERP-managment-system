@@ -15,6 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupplierInvoicesController = void 0;
 const common_1 = require("@nestjs/common");
 const supplier_invoices_service_1 = require("./supplier-invoices.service");
+const create_supplier_invoice_dto_1 = require("./dto/create-supplier-invoice.dto");
+const review_supplier_invoice_dto_1 = require("./dto/review-supplier-invoice.dto");
+const match_item_dto_1 = require("./dto/match-item.dto");
 let SupplierInvoicesController = class SupplierInvoicesController {
     service;
     constructor(service) {
@@ -28,6 +31,9 @@ let SupplierInvoicesController = class SupplierInvoicesController {
     }
     create(data) {
         return this.service.create(data);
+    }
+    matchItem(invoiceId, itemId, dto) {
+        return this.service.matchItem(invoiceId, itemId, dto.matchedProductId);
     }
     confirm(id, body) {
         return this.service.confirm(id, body?.reviewedBy);
@@ -60,15 +66,24 @@ __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_supplier_invoice_dto_1.CreateSupplierInvoiceDto]),
     __metadata("design:returntype", void 0)
 ], SupplierInvoicesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Patch)(':invoiceId/items/:itemId/match'),
+    __param(0, (0, common_1.Param)('invoiceId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, match_item_dto_1.MatchItemDto]),
+    __metadata("design:returntype", void 0)
+], SupplierInvoicesController.prototype, "matchItem", null);
 __decorate([
     (0, common_1.Patch)(':id/confirm'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, review_supplier_invoice_dto_1.ReviewSupplierInvoiceDto]),
     __metadata("design:returntype", void 0)
 ], SupplierInvoicesController.prototype, "confirm", null);
 __decorate([
@@ -76,7 +91,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, review_supplier_invoice_dto_1.ReviewSupplierInvoiceDto]),
     __metadata("design:returntype", void 0)
 ], SupplierInvoicesController.prototype, "reject", null);
 __decorate([

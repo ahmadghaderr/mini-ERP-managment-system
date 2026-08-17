@@ -1,5 +1,12 @@
 import {
-  Controller, Get, Post, Body, Patch, Param, Delete, HttpCode,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
@@ -26,7 +33,10 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: UpdateProductDto): Promise<Product> {
+  update(
+    @Param('id') id: string,
+    @Body() data: UpdateProductDto,
+  ): Promise<Product> {
     return this.productsService.update(id, data);
   }
 

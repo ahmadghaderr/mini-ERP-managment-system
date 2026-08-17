@@ -15,22 +15,38 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerOrdersController = void 0;
 const common_1 = require("@nestjs/common");
 const customer_orders_service_1 = require("./customer-orders.service");
+const create_customer_order_dto_1 = require("./dto/create-customer-order.dto");
+const review_customer_order_dto_1 = require("./dto/review-customer-order.dto");
+const match_item_dto_1 = require("./dto/match-item.dto");
 let CustomerOrdersController = class CustomerOrdersController {
     service;
     constructor(service) {
         this.service = service;
     }
-    findAll() { return this.service.findAll(); }
-    findOne(id) { return this.service.findOne(id); }
-    create(data) { return this.service.create(data); }
+    findAll() {
+        return this.service.findAll();
+    }
+    findOne(id) {
+        return this.service.findOne(id);
+    }
+    create(data) {
+        return this.service.create(data);
+    }
+    matchItem(orderId, itemId, dto) {
+        return this.service.matchItem(orderId, itemId, dto.matchedProductId);
+    }
     confirm(id, body) {
         return this.service.confirm(id, body?.reviewedBy);
     }
-    deliver(id) { return this.service.deliver(id); }
+    deliver(id) {
+        return this.service.deliver(id);
+    }
     reject(id, body) {
         return this.service.reject(id, body?.reviewedBy);
     }
-    remove(id) { return this.service.remove(id); }
+    remove(id) {
+        return this.service.remove(id);
+    }
 };
 exports.CustomerOrdersController = CustomerOrdersController;
 __decorate([
@@ -50,15 +66,24 @@ __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_customer_order_dto_1.CreateCustomerOrderDto]),
     __metadata("design:returntype", void 0)
 ], CustomerOrdersController.prototype, "create", null);
+__decorate([
+    (0, common_1.Patch)(':orderId/items/:itemId/match'),
+    __param(0, (0, common_1.Param)('orderId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, match_item_dto_1.MatchItemDto]),
+    __metadata("design:returntype", void 0)
+], CustomerOrdersController.prototype, "matchItem", null);
 __decorate([
     (0, common_1.Patch)(':id/confirm'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, review_customer_order_dto_1.ReviewCustomerOrderDto]),
     __metadata("design:returntype", void 0)
 ], CustomerOrdersController.prototype, "confirm", null);
 __decorate([
@@ -73,7 +98,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, review_customer_order_dto_1.ReviewCustomerOrderDto]),
     __metadata("design:returntype", void 0)
 ], CustomerOrdersController.prototype, "reject", null);
 __decorate([

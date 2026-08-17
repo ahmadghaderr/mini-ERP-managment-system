@@ -10,12 +10,10 @@ export class WarehousesService {
     private readonly warehouseRepo: Repository<Warehouse>,
   ) {}
 
-  // GET all warehouses
   findAll(): Promise<Warehouse[]> {
     return this.warehouseRepo.find({ order: { createdAt: 'DESC' } });
   }
 
-  // GET one by id
   async findOne(id: string): Promise<Warehouse> {
     const warehouse = await this.warehouseRepo.findOne({ where: { id } });
     if (!warehouse) {
@@ -24,22 +22,19 @@ export class WarehousesService {
     return warehouse;
   }
 
-  // CREATE
   create(data: Partial<Warehouse>): Promise<Warehouse> {
     const warehouse = this.warehouseRepo.create(data);
     return this.warehouseRepo.save(warehouse);
   }
 
-  // UPDATE
   async update(id: string, data: Partial<Warehouse>): Promise<Warehouse> {
-    const warehouse = await this.findOne(id); // throws if missing
+    const warehouse = await this.findOne(id);
     Object.assign(warehouse, data);
     return this.warehouseRepo.save(warehouse);
   }
 
-  // DELETE
   async remove(id: string): Promise<void> {
-    const warehouse = await this.findOne(id); // throws if missing
+    const warehouse = await this.findOne(id);
     await this.warehouseRepo.remove(warehouse);
   }
 }

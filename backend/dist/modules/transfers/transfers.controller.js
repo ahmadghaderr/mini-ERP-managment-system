@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransfersController = void 0;
 const common_1 = require("@nestjs/common");
 const transfers_service_1 = require("./transfers.service");
+const create_transfer_dto_1 = require("./dto/create-transfer.dto");
 let TransfersController = class TransfersController {
     transfersService;
     constructor(transfersService) {
@@ -38,7 +39,7 @@ __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_transfer_dto_1.CreateTransferDto]),
     __metadata("design:returntype", void 0)
 ], TransfersController.prototype, "create", null);
 exports.TransfersController = TransfersController = __decorate([
