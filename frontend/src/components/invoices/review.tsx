@@ -63,14 +63,23 @@ export default function Review({
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
-          <div className="inv-pg-title">Review invoice</div>
+          <h1 className="inv-pg-title">Review invoice</h1>
         </div>
         <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
           Back
         </button>
       </div>
 
       <div className="inv-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
         Confirming accepts the extracted data only. Stock is added later, when
         the shipment arrives (delivered).
       </div>
@@ -148,9 +157,16 @@ export default function Review({
           className="inv-btn inv-btn--primary"
           onClick={() => handleConfirm(items)}
         >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
           Confirm
         </button>
         <button className="inv-btn inv-btn--danger" onClick={handleReject}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
           Reject
         </button>
       </div>

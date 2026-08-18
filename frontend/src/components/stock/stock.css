@@ -7,28 +7,51 @@
 }
 
 .stk-pg-head {
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid var(--border-color);
+  margin-bottom: 26px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 28px;
   flex-wrap: wrap;
 }
 
 .stk-pg-title {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
   color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.4px;
 }
 
 .stk-pg-subtitle {
   font-size: 14px;
   color: var(--text-muted);
-  margin: 4px 0 0;
+  margin: 6px 0 0;
+}
+
+.stk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-xs);
+}
+
+.stk-ledger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stk-ledger-search {
+  flex: 0 1 260px;
 }
 
 .stk-btn {
@@ -441,33 +464,52 @@
 }
 
 .stk-transfer-item-row {
-  display: grid;
-  grid-template-columns: 1fr 90px 32px;
+  display: flex;
+  align-items: center;
   gap: 10px;
   margin-bottom: 10px;
-  align-items: center;
+}
+
+.stk-transfer-item-row .stk-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.stk-transfer-item-row .stk-input {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.stk-select,
+.stk-transfer-item-row .stk-input {
+  height: 44px;
+  box-sizing: border-box;
 }
 
 .stk-remove-item-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--danger-bg);
   color: var(--danger-text);
+  border: 1.5px solid var(--danger-border);
+  border-radius: var(--radius-md);
   font-size: 20px;
-  text-align: center;
-  padding: 4px;
-  background: none;
-  border: none;
+  line-height: 1;
   cursor: pointer;
   transition: all var(--transition-fast);
-  border-radius: var(--radius-sm);
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .stk-remove-item-btn:hover {
-  background: var(--danger-bg);
-  transform: scale(1.1);
+  background: var(--danger-bg-hover);
+  border-color: var(--danger-text);
+  transform: scale(1.05);
 }
 
 @media (max-width: 1024px) and (min-width: 769px) {
@@ -567,8 +609,17 @@
   }
 
   .stk-transfer-item-row {
-    grid-template-columns: 1fr 70px 28px;
     gap: 8px;
+  }
+
+  .stk-transfer-item-row .stk-input {
+    width: 70px;
+  }
+
+  .stk-remove-item-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
   }
 }
 

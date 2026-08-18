@@ -154,14 +154,18 @@ export default function Upload({
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
-          <div className="inv-pg-title">Upload & Extract Supplier Invoice</div>
+          <h1 className="inv-pg-title">Upload & extract supplier invoice</h1>
           <p className="inv-pg-subtitle">
             Upload your PDF invoice to extract products, quantities, and
             pricing.
           </p>
         </div>
         <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
-          ← Back
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back
         </button>
       </div>
 
@@ -261,7 +265,6 @@ export default function Upload({
             </div>
           )}
 
-          {/* EXTRACTED DATA TABLE & ACTIONS */}
           {step === "extracted" && (
             <div className="inv-card inv-extracted-card">
               <div className="inv-extracted-header">
@@ -346,7 +349,7 @@ export default function Upload({
                             `$${item.unitPrice.toFixed(2)}`
                           )}
                         </td>
-                        <td style={{ fontWeight: 600 }}>
+                        <td style={{ fontWeight: 700 }}>
                           ${(item.quantity * item.unitPrice).toFixed(2)}
                         </td>
                       </tr>
@@ -356,11 +359,11 @@ export default function Upload({
                     <tr>
                       <td
                         colSpan={3}
-                        style={{ textAlign: "right", fontWeight: 600 }}
+                        style={{ textAlign: "right", fontWeight: 700 }}
                       >
                         Total:
                       </td>
-                      <td style={{ fontWeight: 700, color: "#0f172a" }}>
+                      <td style={{ fontWeight: 800, color: "#0f172a" }}>
                         ${calculatedTotal.toFixed(2)}
                       </td>
                     </tr>
@@ -370,6 +373,9 @@ export default function Upload({
 
               <div className="inv-actions-row">
                 <button className="inv-btn inv-btn--primary" onClick={handleConfirm}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                   Confirm
                 </button>
 
@@ -378,19 +384,22 @@ export default function Upload({
                     className="inv-btn inv-btn--ghost"
                     onClick={handleCheckManually}
                   >
-                     Check manually
+                    Check manually
                   </button>
                 )}
 
                 <button className="inv-btn inv-btn--danger" onClick={handleReject}>
-                  ✕ Reject
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  Reject
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* RIGHT COLUMN: Live PDF Preview */}
         <div className="inv-card inv-preview-card">
           <div className="inv-preview-header">
             <h3>Document Preview</h3>

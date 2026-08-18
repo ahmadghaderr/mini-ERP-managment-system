@@ -42,38 +42,44 @@ export default function Products() {
   return (
     <div className="pg">
       <div className="pg-head">
-        <div>
-          <div className="pg-title">Products</div>
-        </div>
-        {canManage && (
-          <button className="btn btn--primary">+ Add product</button>
-        )}
+        <h1 className="pg-title">Products</h1>
       </div>
 
-      <div className="filters">
-        <div className="field">
-          <label>Search</label>
+      <div className="pg-toolbar">
+        <div className="search-wrap">
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input
-            className="input"
+            className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Product name"
+            placeholder="Search products"
           />
         </div>
-        <div className="field">
-          <label>Category</label>
-          <select
-            className="select"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as Category | "all")}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+
+        <select
+          className="select--category"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as Category | "all")}
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c === "all" ? "All categories" : c}
+            </option>
+          ))}
+        </select>
+
+        {canManage && (
+          <button className="btn btn--primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add product
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -83,13 +89,13 @@ export default function Products() {
               <th>Name</th>
               <th>Category</th>
               <th>Price</th>
-              {canManage && <th></th>}
+              {canManage && <th className="tbl-actions">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map((p) => (
               <tr key={p.id}>
-                <td>{p.name}</td>
+                <td className="tbl-name">{p.name}</td>
                 <td>
                   <span className={`badge badge--cat-${p.category}`}>
                     {p.category}
@@ -97,11 +103,10 @@ export default function Products() {
                 </td>
                 <td>${p.price.toFixed(2)}</td>
                 {canManage && (
-                  <td>
+                  <td className="tbl-actions">
                     <button className="link-btn">Edit</button>
                     <button
-                      className="link-btn"
-                      style={{ color: "#c53030", marginLeft: 24 }}
+                      className="link-btn link-btn--danger"
                       onClick={() => handleDelete(p.id)}
                     >
                       Delete

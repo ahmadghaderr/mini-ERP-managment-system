@@ -1,34 +1,60 @@
 @import "../shared/pages.css";
 
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
 .app-layout {
-  display: flex;
   min-height: 100vh;
-  background: #f0f2f6;
+  background: #f0f4f7;
+  overflow-x: hidden;
 }
 
 .sidebar {
   width: 240px;
-  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  background: linear-gradient(180deg, #0f1f2e 0%, #162940 100%);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  position: sticky;
+  position: fixed;
   top: 0;
-  height: 100vh;
-  overflow-y: auto;
+  left: 0;
+  bottom: 0;
+  overflow: hidden;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+  z-index: 20;
 }
 
 .sidebar-logo {
-  font-size: 20px;
-  font-weight: 700;
-  padding: 0 12px 24px;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 0 8px 20px;
   color: #ffffff;
   display: flex;
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 16px;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-mark {
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(135deg, #3ab5cc, #2a94a8);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-mark svg {
+  width: 14px;
+  height: 14px;
 }
 
 .sidebar-nav {
@@ -36,6 +62,8 @@
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .sidebar-link {
@@ -45,11 +73,25 @@
   padding: 10px 14px;
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
   border-radius: 10px;
   transition: all 0.2s ease;
   position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar-link-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  opacity: 0.9;
+  display: flex;
+}
+
+.sidebar-link-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .sidebar-link::before {
@@ -60,7 +102,7 @@
   transform: translateY(-50%) scaleX(0);
   width: 3px;
   height: 60%;
-  background: #49bad5;
+  background: #3ab5cc;
   border-radius: 0 4px 4px 0;
   transition: transform 0.2s ease;
 }
@@ -76,9 +118,9 @@
 }
 
 .sidebar-link.active {
-  background: rgba(73, 186, 213, 0.18);
+  background: rgba(58, 181, 204, 0.18);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(64, 152, 174, 0.2);
+  box-shadow: 0 2px 8px rgba(42, 148, 168, 0.2);
 }
 
 .sidebar-link.active::before {
@@ -91,7 +133,7 @@
   right: 10px;
   width: 6px;
   height: 6px;
-  background: #4098ae;
+  background: #3ab5cc;
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
@@ -108,6 +150,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .sidebar-user-info {
@@ -123,13 +166,13 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #49bad5 0%, #4098ae 100%);
+  background: linear-gradient(135deg, #3ab5cc 0%, #2a94a8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .sidebar-user-details {
@@ -151,52 +194,27 @@
 }
 
 .app-main {
-  flex: 1;
+  margin-left: 240px;
+  width: calc(100% - 240px);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .topbar {
-  height: 72px;
+  height: 68px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 32px;
   position: sticky;
   top: 0;
   z-index: 10;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.topbar-breadcrumb {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  line-height: 1.2;
-}
-
-.topbar-breadcrumb-eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  color: #a0aec0;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-
-.topbar-breadcrumb-page {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a202c;
-  letter-spacing: -0.2px;
 }
 
 .topbar-right {
@@ -217,21 +235,21 @@
 }
 
 .topbar-user:hover {
-  border-color: #49bad5;
+  border-color: #3ab5cc;
   background: #ffffff;
 }
 
 .topbar-user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #49bad5 0%, #4098ae 100%);
+  background: linear-gradient(135deg, #3ab5cc 0%, #2a94a8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .topbar-user-info {
@@ -256,21 +274,21 @@
 .topbar-logout {
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, #49bad5 0%, #4098ae 100%);
+  background: linear-gradient(135deg, #3ab5cc 0%, #2a94a8 100%);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-left: 4px;
-  box-shadow: 0 2px 6px rgba(64, 152, 174, 0.25);
+  box-shadow: 0 2px 6px rgba(42, 148, 168, 0.25);
 }
 
 .topbar-logout:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(64, 152, 174, 0.35);
-  filter: brightness(1.03);
+  box-shadow: 0 4px 12px rgba(42, 148, 168, 0.35);
+  filter: brightness(1.05);
 }
 
 .topbar-logout:active {
@@ -280,24 +298,25 @@
 .page-content {
   flex: 1;
   padding: 28px 32px;
-  background: #f0f2f6;
-  min-height: calc(100vh - 72px);
+  background: #f0f4f7;
 }
 
 @media (max-width: 1024px) {
   .sidebar {
-    width: 72px;
+    width: 76px;
     padding: 16px 8px;
   }
 
+  .sidebar-logo span:last-child {
+    display: none;
+  }
+
   .sidebar-logo {
-    font-size: 0;
-    padding: 0 0 16px;
     justify-content: center;
   }
 
   .sidebar-link {
-    padding: 10px;
+    padding: 12px;
     justify-content: center;
     font-size: 0;
   }
@@ -323,6 +342,11 @@
     font-size: 11px;
   }
 
+  .app-main {
+    margin-left: 76px;
+    width: calc(100% - 76px);
+  }
+
   .topbar {
     padding: 0 16px;
   }
@@ -341,8 +365,13 @@
     display: none;
   }
 
+  .app-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
   .topbar {
-    height: 64px;
+    height: 60px;
     padding: 0 12px;
   }
 

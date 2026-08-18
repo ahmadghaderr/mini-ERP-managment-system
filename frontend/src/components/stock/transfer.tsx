@@ -193,7 +193,7 @@ export default function Transfer({
 
                 <button
                   type="button"
-                  className="stk-link-btn stk-remove-item-btn"
+                  className="stk-remove-item-btn"
                   onClick={() =>
                     items.length > 1 &&
                     setItems(items.filter((_, i) => i !== idx))

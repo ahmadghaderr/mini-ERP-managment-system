@@ -79,18 +79,20 @@ export default function Inventory() {
       <div className="stk-pg-head">
         <div>
           <div className="stk-pg-title">Inventory</div>
-          <p className="stk-pg-subtitle">Current stock on hand per warehouse.</p>
         </div>
       </div>
 
-      <div className="stk-filters">
-        <div className="stk-field">
-          <label>Search</label>
+      <div className="stk-toolbar">
+        <div className="search-wrap">
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input
-            className="stk-input"
+            className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Product name"
+            placeholder="Search by product name"
           />
         </div>
       </div>

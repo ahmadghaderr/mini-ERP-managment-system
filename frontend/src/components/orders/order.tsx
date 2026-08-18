@@ -162,14 +162,18 @@ export default function Order({ onConfirm, onBack }: OrderProps) {
     <div className="ord-pg">
       <div className="ord-pg-head">
         <div>
-          <div className="ord-pg-title">Create Customer Order</div>
+          <h1 className="ord-pg-title">Create customer order</h1>
           <p className="ord-pg-subtitle">
             Upload the customer's order PDF to extract requested items and check
             stock availability across all warehouses.
           </p>
         </div>
         <button className="ord-btn ord-btn--ghost" onClick={handleBack}>
-          ← Back
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back
         </button>
       </div>
 
@@ -264,6 +268,11 @@ export default function Order({ onConfirm, onBack }: OrderProps) {
 
               {!allAvailable && (
                 <div className="ord-banner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
                   {anyUnavailable
                     ? "One or more items are out of stock across all warehouses."
                     : "One or more items only have partial stock available."}
@@ -335,6 +344,9 @@ export default function Order({ onConfirm, onBack }: OrderProps) {
 
               <div className="ord-actions-row">
                 <button className="ord-btn ord-btn--primary" onClick={handleConfirm}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                   Confirm Order
                 </button>
 
@@ -348,7 +360,11 @@ export default function Order({ onConfirm, onBack }: OrderProps) {
                 )}
 
                 <button className="ord-btn ord-btn--danger" onClick={handleReject}>
-                  ✕ Reject
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  Reject
                 </button>
               </div>
             </div>

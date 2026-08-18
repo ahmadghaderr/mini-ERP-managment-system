@@ -2,6 +2,7 @@ import { useState } from "react";
 import { hasPermission } from "../permissions/permissions";
 import type { Role } from "../permissions/permissions";
 import type { Warehouse } from "../../types/warehouse";
+import "./warehouse.css";
 
 const initialWarehouses: Warehouse[] = [
   {
@@ -47,24 +48,32 @@ export default function Warehouses() {
   return (
     <div className="pg">
       <div className="pg-head">
-        <div>
-          <div className="pg-title">Warehouses</div>
-        </div>
-        {canManage && (
-          <button className="btn btn--primary">+ Add warehouse</button>
-        )}
+        <h1 className="pg-title">Warehouses</h1>
       </div>
 
-      <div className="filters">
-        <div className="field">
-          <label>Search</label>
+      <div className="pg-toolbar">
+        <div className="search-wrap">
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input
-            className="input"
+            className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name or location"
+            placeholder="Search by name or location"
           />
         </div>
+
+        {canManage && (
+          <button className="btn btn--primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add warehouse
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -74,21 +83,22 @@ export default function Warehouses() {
               <th>Name</th>
               <th>Location</th>
               <th>Created</th>
-              {canManage && <th></th>}
+              {canManage && <th className="tbl-actions">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map((w) => (
               <tr key={w.id}>
-                <td>{w.name}</td>
-                <td>{w.location}</td>
-                <td>{w.createdAt}</td>
+                <td className="tbl-name">{w.name}</td>
+                <td>
+                  <span className="loc-badge">{w.location}</span>
+                </td>
+                <td className="tbl-muted">{w.createdAt}</td>
                 {canManage && (
-                  <td>
+                  <td className="tbl-actions">
                     <button className="link-btn">Edit</button>
                     <button
-                      className="link-btn"
-                      style={{ color: "#c53030", marginLeft: 12 }}
+                      className="link-btn link-btn--danger"
                       onClick={() => handleDelete(w.id)}
                     >
                       Delete

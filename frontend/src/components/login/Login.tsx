@@ -24,8 +24,17 @@ function AuthCard({ title, subtitle, error, children }: AuthCardProps) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-title">{title}</h1>
-        <p className="login-subtitle">{subtitle}</p>
+        <div className="login-brand">
+          <div className="login-logo-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <h1 className="login-title">{title}</h1>
+          <p className="login-subtitle">{subtitle}</p>
+        </div>
         {error && <div className="login-error">{error}</div>}
         {children}
       </div>
@@ -112,7 +121,7 @@ export default function Login() {
   }
 
   return (
-    <AuthCard title="Mini ERP" subtitle="Sign in to your account" error={error}>
+    <AuthCard title="StockPilot" subtitle="Sign in to your account" error={error}>
       <form onSubmit={handleLogin}>
         <AuthField
           label="Email"

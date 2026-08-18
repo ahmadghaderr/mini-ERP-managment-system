@@ -71,39 +71,45 @@ export default function List({
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
-          <div className="inv-pg-title">Supplier Invoices</div>
+          <h1 className="inv-pg-title">Supplier Invoices</h1>
+          <p className="inv-pg-subtitle">Track and manage incoming supplier invoices.</p>
         </div>
         <button className="inv-btn inv-btn--primary" onClick={handleUpload}>
-          + Upload invoice
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Upload invoice
         </button>
       </div>
 
-      <div className="inv-filters">
-        <div className="inv-field">
-          <label>Search supplier</label>
+      <div className="pg-toolbar">
+        <div className="search-wrap">
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input
-            className="inv-input"
+            className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="e.g. AquaSupply"
+            placeholder="Search by supplier"
           />
         </div>
-        <div className="inv-field">
-          <label>Status</label>
-          <select
-            className="inv-select"
-            value={status}
-            onChange={(e) =>
-              setStatus(e.target.value as InvoiceStatus | "all")
-            }
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-        </div>
+        <select
+          className="filter-select"
+          value={status}
+          onChange={(e) =>
+            setStatus(e.target.value as InvoiceStatus | "all")
+          }
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s === "all" ? "All statuses" : s.replaceAll("_", " ")}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="inv-card">

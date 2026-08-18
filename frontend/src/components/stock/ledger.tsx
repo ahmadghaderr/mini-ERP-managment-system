@@ -57,78 +57,81 @@ export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
   );
 
   return (
-    <div className="stk-card">
-      <div
-        className="stk-card-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <div className="stk-card-title">Transfer Ledger Audit</div>
-        <div className="stk-field" style={{ margin: 0, flex: "0 1 240px" }}>
-          <input
-            className="stk-input"
-            type="text"
-            placeholder="Search audit log..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="stk-pg">
+      <div className="stk-pg-head">
+        <div>
+          <div className="stk-pg-title">Ledger</div>
         </div>
       </div>
 
-      <div className="stk-tbl-wrap">
-        <table className="stk-tbl">
-          <thead>
-            <tr>
-              <th>Ledger ID</th>
-              <th>Transfer Ref</th>
-              <th>Timestamp</th>
-              <th>Product</th>
-              <th>Qty Moved</th>
-              <th>Route</th>
-              <th>Logged By</th>
-              <th>Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEntries.length === 0 ? (
+      <div className="stk-card">
+        <div className="stk-card-header stk-ledger-header">
+          <div className="stk-card-title">Transfer Ledger Audit</div>
+          <div className="search-wrap stk-ledger-search">
+            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Search audit log..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="stk-tbl-wrap">
+          <table className="stk-tbl">
+            <thead>
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
-                  No ledger records found.
-                </td>
+                <th>Ledger ID</th>
+                <th>Transfer Ref</th>
+                <th>Timestamp</th>
+                <th>Product</th>
+                <th>Qty Moved</th>
+                <th>Route</th>
+                <th>Logged By</th>
+                <th>Type</th>
               </tr>
-            ) : (
-              filteredEntries.map((entry) => (
-                <tr key={entry.id}>
-                  <td style={{ fontSize: 12, fontFamily: "monospace" }}>
-                    {entry.id}
-                  </td>
-                  <td style={{ fontWeight: 600 }}>{entry.transferId ?? "—"}</td>
-                  <td style={{ fontSize: 13 }}>{entry.timestamp}</td>
-                  <td>{entry.productName}</td>
-                  <td style={{ fontWeight: 600 }}>{entry.quantity}</td>
-                  <td style={{ fontSize: 12 }}>
-                    {entry.fromWarehouse && entry.toWarehouse
-                      ? `${entry.fromWarehouse} → ${entry.toWarehouse}`
-                      : entry.toWarehouse
-                        ? `+ ${entry.toWarehouse}`
-                        : `- ${entry.fromWarehouse}`}
-                  </td>
-                  <td style={{ fontSize: 13 }}>{entry.performedBy}</td>
-                  <td>
-                    <span className={`stk-badge ${TYPE_BADGE[entry.type]}`}>
-                      {TYPE_LABELS[entry.type]}
-                    </span>
+            </thead>
+            <tbody>
+              {filteredEntries.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                    No ledger records found.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredEntries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td style={{ fontSize: 12, fontFamily: "monospace" }}>
+                      {entry.id}
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{entry.transferId ?? "—"}</td>
+                    <td style={{ fontSize: 13 }}>{entry.timestamp}</td>
+                    <td>{entry.productName}</td>
+                    <td style={{ fontWeight: 600 }}>{entry.quantity}</td>
+                    <td style={{ fontSize: 12 }}>
+                      {entry.fromWarehouse && entry.toWarehouse
+                        ? `${entry.fromWarehouse} → ${entry.toWarehouse}`
+                        : entry.toWarehouse
+                          ? `+ ${entry.toWarehouse}`
+                          : `- ${entry.fromWarehouse}`}
+                    </td>
+                    <td style={{ fontSize: 13 }}>{entry.performedBy}</td>
+                    <td>
+                      <span className={`stk-badge ${TYPE_BADGE[entry.type]}`}>
+                        {TYPE_LABELS[entry.type]}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
