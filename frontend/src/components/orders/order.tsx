@@ -163,10 +163,6 @@ export default function Order({ onConfirm, onBack }: OrderProps) {
       <div className="ord-pg-head">
         <div>
           <h1 className="ord-pg-title">Create customer order</h1>
-          <p className="ord-pg-subtitle">
-            Upload the customer's order PDF to extract requested items and check
-            stock availability across all warehouses.
-          </p>
         </div>
         <button className="ord-btn ord-btn--ghost" onClick={handleBack}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

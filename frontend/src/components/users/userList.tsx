@@ -208,7 +208,6 @@ export default function Users() {
       <div className="usr-pg-head">
         <div className="usr-pg-head-left">
           <h1 className="usr-pg-title">Users</h1>
-          <p className="usr-pg-sub">Manage user accounts and permissions</p>
         </div>
         <div className="usr-pg-head-right">
           <button className="usr-btn usr-btn--primary" onClick={handleAddUser}>

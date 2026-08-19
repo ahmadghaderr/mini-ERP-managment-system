@@ -29,7 +29,7 @@ export default function App() {
           <Route path="/ledger" element={<StockLedger  />} />
           <Route path="/invoices" element={<InvoicesList />} />
           <Route path="/invoices/upload" element={<InvoiceUpload />} />
-          <Route path="/invoices/review/{id}  " element={<InvoiceReview />} />
+          <Route path="/invoices/review/:id" element={<InvoiceReview />} />
           <Route path="/orders" element={<CustomerOrder />} />
           <Route path="/transfers" element={<StockTransfer />} />
           <Route path="/users" element={<Users />} />

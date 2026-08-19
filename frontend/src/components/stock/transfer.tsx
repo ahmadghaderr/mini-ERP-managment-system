@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./stock.css";
+import { mockLedgerEntries } from "./ledger";
 import type {
   Warehouse,
   NewTransferPayload,
   TransferItem,
+  LedgerEntry,
 } from "../../types/stock";
 
 interface ProductOption {
@@ -24,9 +26,24 @@ const mockProducts: ProductOption[] = [
   { id: "prod-03", name: "Rice 1kg" },
 ];
 
+const TYPE_BADGE: Record<LedgerEntry["type"], string> = {
+  TRANSFER_IN: "stk-badge--success",
+  TRANSFER_OUT: "stk-badge--info",
+  ADJUSTMENT_IN: "stk-badge--success",
+  ADJUSTMENT_OUT: "stk-badge--warning",
+};
+
+const TYPE_LABELS: Record<LedgerEntry["type"], string> = {
+  TRANSFER_IN: "IN",
+  TRANSFER_OUT: "OUT",
+  ADJUSTMENT_IN: "ADJ IN",
+  ADJUSTMENT_OUT: "ADJ OUT",
+};
+
 interface TransferProps {
   warehouses?: Warehouse[];
   products?: ProductOption[];
+  history?: LedgerEntry[];
   onSave?: (payload: NewTransferPayload) => void;
   onClose?: () => void;
 }
@@ -34,6 +51,7 @@ interface TransferProps {
 export default function Transfer({
   warehouses = mockWarehouses,
   products = mockProducts,
+  history = mockLedgerEntries,
   onSave,
   onClose,
 }: TransferProps) {
@@ -87,6 +105,10 @@ export default function Transfer({
     }
     if (onClose) onClose();
   };
+
+  const recentHistory = [...history]
+    .sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))
+    .slice(0, 8);
 
   return (
     <div className="stk-pg">
@@ -229,6 +251,56 @@ export default function Transfer({
           </div>
         </div>
       </form>
+
+      <div className="stk-card" style={{ marginTop: 24 }}>
+        <div className="stk-card-header">
+          <div className="stk-card-title">Recent Transfer History</div>
+        </div>
+        <div className="stk-tbl-wrap">
+          <table className="stk-tbl stk-history-tbl">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Route</th>
+                <th>Date</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="stk-history-empty">
+                    No transfer history yet.
+                  </td>
+                </tr>
+              ) : (
+                recentHistory.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{entry.productName}</td>
+                    <td style={{ fontWeight: 600 }}>{entry.quantity}</td>
+                    <td className="stk-history-route">
+                      {entry.fromWarehouse && entry.toWarehouse
+                        ? `${entry.fromWarehouse} → ${entry.toWarehouse}`
+                        : entry.toWarehouse
+                          ? `+ ${entry.toWarehouse}`
+                          : `- ${entry.fromWarehouse}`}
+                    </td>
+                    <td style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                      {entry.timestamp}
+                    </td>
+                    <td>
+                      <span className={`stk-badge ${TYPE_BADGE[entry.type]}`}>
+                        {TYPE_LABELS[entry.type]}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

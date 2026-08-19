@@ -72,7 +72,6 @@ export default function List({
       <div className="inv-pg-head">
         <div>
           <h1 className="inv-pg-title">Supplier Invoices</h1>
-          <p className="inv-pg-subtitle">Track and manage incoming supplier invoices.</p>
         </div>
         <button className="inv-btn inv-btn--primary" onClick={handleUpload}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

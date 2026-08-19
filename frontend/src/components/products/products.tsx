@@ -19,10 +19,111 @@ const CATEGORIES: (Category | "all")[] = [
   "electronics",
 ];
 
+const FORM_CATEGORIES: Category[] = ["water", "food", "healthcare", "electronics"];
+
+type ProductFormData = {
+  name: string;
+  category: Category;
+  price: number;
+};
+
+interface ProductModalProps {
+  product: Product | null;
+  onSave: (data: ProductFormData) => void;
+  onClose: () => void;
+}
+
+function ProductModal({ product, onSave, onClose }: ProductModalProps) {
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: product?.name ?? "",
+    category: product?.category ?? "water",
+    price: product?.price ?? 0,
+  });
+
+  function handleSubmit() {
+    if (!formData.name.trim() || formData.price <= 0) {
+      alert("Please fill in a valid name and price");
+      return;
+    }
+    onSave(formData);
+  }
+
+  return (
+    <div className="prod-modal-overlay" onClick={onClose}>
+      <div className="prod-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="prod-modal-header">
+          <div className="prod-modal-title">
+            {product ? "Edit Product" : "Add Product"}
+          </div>
+          <button className="prod-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="prod-modal-body">
+          <div className="field">
+            <label>Product Name</label>
+            <input
+              className="input"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. Bottled Water 500ml"
+            />
+          </div>
+          <div className="field">
+            <label>Category</label>
+            <select
+              className="select"
+              value={formData.category}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value as Category })
+              }
+            >
+              {FORM_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Price ($)</label>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) =>
+                setFormData({ ...formData, price: Number(e.target.value) })
+              }
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        <div className="prod-modal-footer">
+          <button className="btn btn--ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn--primary" onClick={handleSubmit}>
+            {product ? "Save Changes" : "Create Product"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Products() {
   const [products, setProducts] = useState(initialProducts);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category | "all">("all");
+  const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const userJson = localStorage.getItem("currentUser");
   const role = (userJson ? JSON.parse(userJson).role : "staff") as Role;
@@ -34,6 +135,34 @@ export default function Products() {
       p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  function handleAdd() {
+    setEditingProduct(null);
+    setShowModal(true);
+  }
+
+  function handleEdit(p: Product) {
+    setEditingProduct(p);
+    setShowModal(true);
+  }
+
+  function handleSave(data: ProductFormData) {
+    if (editingProduct) {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === editingProduct.id ? { ...p, ...data } : p,
+        ),
+      );
+    } else {
+      const newProduct: Product = {
+        id: `p-${Date.now()}`,
+        ...data,
+      };
+      setProducts((prev) => [newProduct, ...prev]);
+    }
+    setShowModal(false);
+    setEditingProduct(null);
+  }
+
   function handleDelete(id: string) {
     if (!confirm("Delete this product?")) return;
     setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -43,6 +172,7 @@ export default function Products() {
     <div className="pg">
       <div className="pg-head">
         <h1 className="pg-title">Products</h1>
+        <p className="pg-subtitle">Manage your product catalog and pricing.</p>
       </div>
 
       <div className="pg-toolbar">
@@ -60,7 +190,7 @@ export default function Products() {
         </div>
 
         <select
-          className="select--category"
+          className="filter-select"
           value={category}
           onChange={(e) => setCategory(e.target.value as Category | "all")}
         >
@@ -72,7 +202,7 @@ export default function Products() {
         </select>
 
         {canManage && (
-          <button className="btn btn--primary">
+          <button className="btn btn--primary" onClick={handleAdd}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -104,7 +234,9 @@ export default function Products() {
                 <td>${p.price.toFixed(2)}</td>
                 {canManage && (
                   <td className="tbl-actions">
-                    <button className="link-btn">Edit</button>
+                    <button className="link-btn" onClick={() => handleEdit(p)}>
+                      Edit
+                    </button>
                     <button
                       className="link-btn link-btn--danger"
                       onClick={() => handleDelete(p.id)}
@@ -118,6 +250,17 @@ export default function Products() {
           </tbody>
         </table>
       </div>
+
+      {showModal && (
+        <ProductModal
+          product={editingProduct}
+          onSave={handleSave}
+          onClose={() => {
+            setShowModal(false);
+            setEditingProduct(null);
+          }}
+        />
+      )}
     </div>
   );
 }

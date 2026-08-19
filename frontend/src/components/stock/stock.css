@@ -670,3 +670,18 @@
     font-size: 15px;
   }
 }
+
+.stk-history-tbl td {
+  vertical-align: middle;
+}
+
+.stk-history-route {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stk-history-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+}

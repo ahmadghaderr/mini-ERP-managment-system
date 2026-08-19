@@ -25,9 +25,85 @@ const initialWarehouses: Warehouse[] = [
   },
 ];
 
+type WarehouseFormData = {
+  name: string;
+  location: string;
+};
+
+interface WarehouseModalProps {
+  warehouse: Warehouse | null;
+  onSave: (data: WarehouseFormData) => void;
+  onClose: () => void;
+}
+
+function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
+  const [formData, setFormData] = useState<WarehouseFormData>({
+    name: warehouse?.name ?? "",
+    location: warehouse?.location ?? "",
+  });
+
+  function handleSubmit() {
+    if (!formData.name.trim() || !formData.location.trim()) {
+      alert("Please fill in all fields");
+      return;
+    }
+    onSave(formData);
+  }
+
+  return (
+    <div className="wh-modal-overlay" onClick={onClose}>
+      <div className="wh-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="wh-modal-header">
+          <div className="wh-modal-title">
+            {warehouse ? "Edit Warehouse" : "Add Warehouse"}
+          </div>
+          <button className="wh-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="wh-modal-body">
+          <div className="field">
+            <label>Warehouse Name</label>
+            <input
+              className="input"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. Main Warehouse"
+            />
+          </div>
+          <div className="field">
+            <label>Location</label>
+            <input
+              className="input"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="e.g. Tripoli, LB"
+            />
+          </div>
+        </div>
+
+        <div className="wh-modal-footer">
+          <button className="btn btn--ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn--primary" onClick={handleSubmit}>
+            {warehouse ? "Save Changes" : "Create Warehouse"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Warehouses() {
   const [warehouses, setWarehouses] = useState(initialWarehouses);
   const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
   const userJson = localStorage.getItem("currentUser");
   const role = (userJson ? JSON.parse(userJson).role : "staff") as Role;
@@ -39,6 +115,35 @@ export default function Warehouses() {
       w.location.toLowerCase().includes(search.toLowerCase()),
   );
 
+  function handleAdd() {
+    setEditingWarehouse(null);
+    setShowModal(true);
+  }
+
+  function handleEdit(w: Warehouse) {
+    setEditingWarehouse(w);
+    setShowModal(true);
+  }
+
+  function handleSave(data: WarehouseFormData) {
+    if (editingWarehouse) {
+      setWarehouses((prev) =>
+        prev.map((w) =>
+          w.id === editingWarehouse.id ? { ...w, ...data } : w,
+        ),
+      );
+    } else {
+      const newWarehouse: Warehouse = {
+        id: `wh-${Date.now()}`,
+        ...data,
+        createdAt: new Date().toISOString().slice(0, 10),
+      };
+      setWarehouses((prev) => [newWarehouse, ...prev]);
+    }
+    setShowModal(false);
+    setEditingWarehouse(null);
+  }
+
   function handleDelete(id: string) {
     if (!confirm("Delete this warehouse?")) return;
 
@@ -49,6 +154,7 @@ export default function Warehouses() {
     <div className="pg">
       <div className="pg-head">
         <h1 className="pg-title">Warehouses</h1>
+        <p className="pg-subtitle">Manage your storage locations and facilities.</p>
       </div>
 
       <div className="pg-toolbar">
@@ -66,7 +172,7 @@ export default function Warehouses() {
         </div>
 
         {canManage && (
-          <button className="btn btn--primary">
+          <button className="btn btn--primary" onClick={handleAdd}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -96,7 +202,9 @@ export default function Warehouses() {
                 <td className="tbl-muted">{w.createdAt}</td>
                 {canManage && (
                   <td className="tbl-actions">
-                    <button className="link-btn">Edit</button>
+                    <button className="link-btn" onClick={() => handleEdit(w)}>
+                      Edit
+                    </button>
                     <button
                       className="link-btn link-btn--danger"
                       onClick={() => handleDelete(w.id)}
@@ -110,6 +218,17 @@ export default function Warehouses() {
           </tbody>
         </table>
       </div>
+
+      {showModal && (
+        <WarehouseModal
+          warehouse={editingWarehouse}
+          onSave={handleSave}
+          onClose={() => {
+            setShowModal(false);
+            setEditingWarehouse(null);
+          }}
+        />
+      )}
     </div>
   );
 }
