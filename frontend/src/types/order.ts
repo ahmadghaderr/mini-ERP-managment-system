@@ -12,3 +12,14 @@ export interface NewCustomerOrderPayload {
   customerName: string;
   items: OrderItem[];
 }
+
+export type CustomerOrderStatus = "pending" | "confirmed" | "delivered" | "rejected";
+
+export interface CustomerOrderSummary {
+  id: string;
+  customerName: string;
+  orderDate: string;
+  deliveryDate: string;
+  warehouse: string;
+  status: CustomerOrderStatus;
+}

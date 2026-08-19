@@ -9,10 +9,11 @@ import InvoiceReview from './components/invoices/review';
 import StockLedger from './components/stock/ledger';
 import Inventory from './components/stock/inventory';
 import CustomerOrder from './components/orders/order';
+import OrdersList from './components/orders/listOrder';
 import StockTransfer from './components/stock/transfer';
 import Warehouses from './components/warehouse/warehouse';
-import Products from './components/products/products';  
-import Users from './components/users/userList';
+import Products from './components/products/products';
+import Users from './components/users/users';
 import RequestAccess from './components/access-requests/requestAccess';
 import PendingRequests from './components/access-requests/pendingRequests';
 
@@ -21,21 +22,22 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/request-access" element={<RequestAccess />} />
 
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/warehouses" element={<Warehouses />} />
           <Route path="/inventory" element={<Inventory />} />
-          <Route path="/ledger" element={<StockLedger  />} />
+          <Route path="/ledger" element={<StockLedger />} />
           <Route path="/invoices" element={<InvoicesList />} />
           <Route path="/invoices/upload" element={<InvoiceUpload />} />
           <Route path="/invoices/review/:id" element={<InvoiceReview />} />
-          <Route path="/orders" element={<CustomerOrder />} />
+          <Route path="/orders" element={<OrdersList />} />
+          <Route path="/orders/upload" element={<CustomerOrder />} />
           <Route path="/transfers" element={<StockTransfer />} />
           <Route path="/users" element={<Users />} />
           <Route path="/products" element={<Products />} />
           <Route path="/access-requests" element={<PendingRequests />} />
-          <Route path="/request-access" element={<RequestAccess />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

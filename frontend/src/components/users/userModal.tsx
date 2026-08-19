@@ -1,19 +1,18 @@
 import { useState } from "react";
 import "./users.css";
-import type { User, UserFormData, UserModalProps } from "../../types/user";
+import type { CreateUserPayload, Role, UserModalProps } from "../../types/user";
 
-const roles = ["Admin", "Manager", "Staff"];
+const roles: Role[] = ["admin", "manager", "staff"];
 
 export default function UserModal({ user, onSave, onClose }: UserModalProps) {
-  const [formData, setFormData] = useState<UserFormData>({
-    fullName: user?.fullName ?? "",
-    email: user?.email ?? "",
-    role: user?.role ?? "Staff",
-    status: user?.status ?? "active",
+  const [formData, setFormData] = useState<CreateUserPayload>({
+    userName: user?.userName ?? "",
+    userEmail: user?.userEmail ?? "",
+    role: user?.role ?? "staff",
   });
 
   const handleSubmit = () => {
-    if (!formData.fullName || !formData.email) {
+    if (!formData.userName || !formData.userEmail) {
       alert("Please fill in all fields");
       return;
     }
@@ -24,9 +23,7 @@ export default function UserModal({ user, onSave, onClose }: UserModalProps) {
     <div className="usr-modal-overlay" onClick={onClose}>
       <div className="usr-modal" onClick={(e) => e.stopPropagation()}>
         <div className="usr-modal-header">
-          <div className="usr-modal-title">
-            {user ? "Edit User" : "Add New User"}
-          </div>
+          <div className="usr-modal-title">{user ? "Edit User" : "Add New User"}</div>
           <button className="usr-modal-close" onClick={onClose} aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -40,10 +37,8 @@ export default function UserModal({ user, onSave, onClose }: UserModalProps) {
             <input
               className="usr-input"
               type="text"
-              value={formData.fullName}
-              onChange={(e) =>
-                setFormData({ ...formData, fullName: e.target.value })
-              }
+              value={formData.userName}
+              onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
               placeholder="Enter full name"
             />
           </div>
@@ -52,11 +47,10 @@ export default function UserModal({ user, onSave, onClose }: UserModalProps) {
             <input
               className="usr-input"
               type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              value={formData.userEmail}
+              onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
               placeholder="Enter email address"
+              disabled={!!user}
             />
           </div>
           <div className="usr-field">
@@ -64,32 +58,13 @@ export default function UserModal({ user, onSave, onClose }: UserModalProps) {
             <select
               className="usr-select"
               value={formData.role}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
             >
               {roles.map((role) => (
                 <option key={role} value={role}>
                   {role}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="usr-field">
-            <label>Status</label>
-            <select
-              className="usr-select"
-              value={formData.status}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  status: e.target.value as User["status"],
-                })
-              }
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
             </select>
           </div>
         </div>

@@ -1,49 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { hasPermission } from "../permissions/permissions";
+import { decodeToken } from "../../lib/cognito";
 import type { Role } from "../permissions/permissions";
-import type { Warehouse } from "../../types/warehouse";
+import type { Warehouse, CreateWarehousePayload, WarehouseModalProps } from "../../types/warehouse";
+import { fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from "../../services/warehouse-service";
 import "./warehouse.css";
 
-const initialWarehouses: Warehouse[] = [
-  {
-    id: "wh-1",
-    name: "Main Warehouse",
-    location: "Tripoli, LB",
-    createdAt: "2026-07-01",
-  },
-  {
-    id: "wh-2",
-    name: "North Depot",
-    location: "Beirut, LB",
-    createdAt: "2026-07-10",
-  },
-  {
-    id: "wh-3",
-    name: "South Storage",
-    location: "Saida, LB",
-    createdAt: "2026-07-22",
-  },
-];
-
-type WarehouseFormData = {
-  name: string;
-  location: string;
-};
-
-interface WarehouseModalProps {
-  warehouse: Warehouse | null;
-  onSave: (data: WarehouseFormData) => void;
-  onClose: () => void;
-}
-
 function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
-  const [formData, setFormData] = useState<WarehouseFormData>({
-    name: warehouse?.name ?? "",
-    location: warehouse?.location ?? "",
+  const [formData, setFormData] = useState<CreateWarehousePayload>({
+    warehouseName: warehouse?.warehouseName ?? "",
+    warehouseLocation: warehouse?.warehouseLocation ?? "",
   });
 
   function handleSubmit() {
-    if (!formData.name.trim() || !formData.location.trim()) {
+    if (!formData.warehouseName.trim() || !formData.warehouseLocation.trim()) {
       alert("Please fill in all fields");
       return;
     }
@@ -70,8 +40,8 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
             <label>Warehouse Name</label>
             <input
               className="input"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.warehouseName}
+              onChange={(e) => setFormData({ ...formData, warehouseName: e.target.value })}
               placeholder="e.g. Main Warehouse"
             />
           </div>
@@ -79,8 +49,8 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
             <label>Location</label>
             <input
               className="input"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              value={formData.warehouseLocation}
+              onChange={(e) => setFormData({ ...formData, warehouseLocation: e.target.value })}
               placeholder="e.g. Tripoli, LB"
             />
           </div>
@@ -100,19 +70,36 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
 }
 
 export default function Warehouses() {
-  const [warehouses, setWarehouses] = useState(initialWarehouses);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
-  const userJson = localStorage.getItem("currentUser");
-  const role = (userJson ? JSON.parse(userJson).role : "staff") as Role;
+  const idToken = localStorage.getItem("idToken");
+  const payload = idToken ? decodeToken(idToken) : null;
+  const groups = (payload?.["cognito:groups"] as string[]) ?? [];
+  const role = (groups[0] ?? "staff") as Role;
   const canManage = hasPermission(role, "warehouses:manage");
+
+  useEffect(() => {
+    loadWarehouses();
+  }, []);
+
+  async function loadWarehouses() {
+    setLoading(true);
+    try {
+      const data = await fetchWarehouses();
+      setWarehouses(data);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const rows = warehouses.filter(
     (w) =>
-      w.name.toLowerCase().includes(search.toLowerCase()) ||
-      w.location.toLowerCase().includes(search.toLowerCase()),
+      w.warehouseName.toLowerCase().includes(search.toLowerCase()) ||
+      w.warehouseLocation.toLowerCase().includes(search.toLowerCase()),
   );
 
   function handleAdd() {
@@ -125,29 +112,25 @@ export default function Warehouses() {
     setShowModal(true);
   }
 
-  function handleSave(data: WarehouseFormData) {
+  async function handleSave(data: CreateWarehousePayload) {
     if (editingWarehouse) {
-      setWarehouses((prev) =>
-        prev.map((w) =>
-          w.id === editingWarehouse.id ? { ...w, ...data } : w,
-        ),
-      );
+      await updateWarehouse(editingWarehouse.id, data);
     } else {
-      const newWarehouse: Warehouse = {
-        id: `wh-${Date.now()}`,
-        ...data,
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
-      setWarehouses((prev) => [newWarehouse, ...prev]);
+      await createWarehouse(data);
     }
     setShowModal(false);
     setEditingWarehouse(null);
+    loadWarehouses();
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Delete this warehouse?")) return;
+    await deleteWarehouse(id);
+    loadWarehouses();
+  }
 
-    setWarehouses((prev) => prev.filter((w) => w.id !== id));
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
   }
 
   return (
@@ -195,11 +178,11 @@ export default function Warehouses() {
           <tbody>
             {rows.map((w) => (
               <tr key={w.id}>
-                <td className="tbl-name">{w.name}</td>
+                <td className="tbl-name">{w.warehouseName}</td>
                 <td>
-                  <span className="loc-badge">{w.location}</span>
+                  <span className="loc-badge">{w.warehouseLocation}</span>
                 </td>
-                <td className="tbl-muted">{w.createdAt}</td>
+                <td className="tbl-muted">{new Date(w.createdAt).toLocaleDateString()}</td>
                 {canManage && (
                   <td className="tbl-actions">
                     <button className="link-btn" onClick={() => handleEdit(w)}>

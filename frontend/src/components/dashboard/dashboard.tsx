@@ -133,8 +133,6 @@ function formatDate(dateStr: string): string {
   });
 }
 
-// --- chart section: added on top of Ahmad's logic, doesn't touch it ---
-
 const TEAL = "#3ab5cc";
 const TEAL_DARK = "#2a94a8";
 const TEAL_LIGHT = "#b2dde8";
@@ -235,6 +233,57 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="dash-card">
+        <div className="dash-card-header">
+          <div className="dash-card-title">Upcoming Shipments</div>
+          <div className="dash-pager">
+            <span className="dash-pager-info">
+              Page {shipmentPage + 1} of {shipmentPageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShipmentPage((p) => Math.max(0, p - 1))}
+              disabled={shipmentPage === 0}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => setShipmentPage((p) => Math.min(shipmentPageCount - 1, p + 1))}
+              disabled={shipmentPage >= shipmentPageCount - 1}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        <table className="dash-tbl">
+          <thead>
+            <tr>
+              <th>Supplier</th>
+              <th>Warehouse</th>
+              <th style={{ width: 140 }}>Expected Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleShipments.length === 0 ? (
+              <tr>
+                <td colSpan={3} style={{ textAlign: "center", padding: 20 }}>
+                  No upcoming shipments.
+                </td>
+              </tr>
+            ) : (
+              visibleShipments.map((shipment) => (
+                <tr key={shipment.id}>
+                  <td>{shipment.supplierName}</td>
+                  <td>{shipment.warehouseName}</td>
+                  <td>{formatDate(shipment.expectedDeliveryDate)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
       <div className="dash-charts">
         <div className="dash-card">
           <div className="dash-card-header">
@@ -301,57 +350,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="dash-card">
-        <div className="dash-card-header">
-          <div className="dash-card-title">Upcoming Shipments</div>
-          <div className="dash-pager">
-            <span className="dash-pager-info">
-              Page {shipmentPage + 1} of {shipmentPageCount}
-            </span>
-            <button
-              type="button"
-              onClick={() => setShipmentPage((p) => Math.max(0, p - 1))}
-              disabled={shipmentPage === 0}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={() => setShipmentPage((p) => Math.min(shipmentPageCount - 1, p + 1))}
-              disabled={shipmentPage >= shipmentPageCount - 1}
-            >
-              ›
-            </button>
-          </div>
-        </div>
-        <table className="dash-tbl">
-          <thead>
-            <tr>
-              <th>Supplier</th>
-              <th>Warehouse</th>
-              <th style={{ width: 140 }}>Expected Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleShipments.length === 0 ? (
-              <tr>
-                <td colSpan={3} style={{ textAlign: "center", padding: 20 }}>
-                  No upcoming shipments.
-                </td>
-              </tr>
-            ) : (
-              visibleShipments.map((shipment) => (
-                <tr key={shipment.id}>
-                  <td>{shipment.supplierName}</td>
-                  <td>{shipment.warehouseName}</td>
-                  <td>{formatDate(shipment.expectedDeliveryDate)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
       </div>
     </div>
   );

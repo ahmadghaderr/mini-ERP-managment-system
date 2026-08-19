@@ -91,7 +91,6 @@ export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
                 <th>Timestamp</th>
                 <th>Product</th>
                 <th>Qty Moved</th>
-                <th>Route</th>
                 <th>Logged By</th>
                 <th>Type</th>
               </tr>
@@ -113,13 +112,6 @@ export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
                     <td style={{ fontSize: 13 }}>{entry.timestamp}</td>
                     <td>{entry.productName}</td>
                     <td style={{ fontWeight: 600 }}>{entry.quantity}</td>
-                    <td style={{ fontSize: 12 }}>
-                      {entry.fromWarehouse && entry.toWarehouse
-                        ? `${entry.fromWarehouse} → ${entry.toWarehouse}`
-                        : entry.toWarehouse
-                          ? `+ ${entry.toWarehouse}`
-                          : `- ${entry.fromWarehouse}`}
-                    </td>
                     <td style={{ fontSize: 13 }}>{entry.performedBy}</td>
                     <td>
                       <span className={`stk-badge ${TYPE_BADGE[entry.type]}`}>

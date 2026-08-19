@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'warehouse_manager' | 'staff';
+export type Role = 'admin' | 'manager' | 'staff';
 
 export type Action =
   | 'warehouses:view'
@@ -14,43 +14,39 @@ export type Action =
   | 'orders:view'
   | 'orders:upload'
   | 'orders:confirm'
-  | 'supplier-orders:view'
-  | 'supplier-orders:create'
-  | 'supplier-orders:approve'
   | 'transfers:view'
   | 'transfers:create'
   | 'transfers:approve'
   | 'users:manage';
 
 const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
-  warehouse_manager: [
+  manager: [
     'warehouses:view',
+    'warehouses:manage',
     'products:view',
+    'products:manage',
     'inventory:view',
     'inventory:adjust',
     'ledger:view',
     'invoices:view',
+    'invoices:upload',
     'invoices:approve',
     'orders:view',
+    'orders:upload',
     'orders:confirm',
-    'supplier-orders:view',
-    'supplier-orders:create',
-    'supplier-orders:approve',
     'transfers:view',
     'transfers:create',
     'transfers:approve',
   ],
   staff: [
+    'warehouses:view',
+    'products:view',
     'inventory:view',
     'ledger:view',
     'invoices:view',
     'invoices:upload',
     'orders:view',
     'orders:upload',
-    'supplier-orders:view',
-    'supplier-orders:create',
-    'transfers:view',
-    'transfers:create',
   ],
 };
 

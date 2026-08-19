@@ -1,47 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { hasPermission } from "../permissions/permissions";
+import { decodeToken } from "../../lib/cognito";
 import type { Role } from "../permissions/permissions";
 import "./products.css";
-import type { Category, Product } from "../../types/product";
+import type {
+  Product,
+  ProductCategory,
+  CreateProductPayload,
+} from "../../types/product";
+import {
+  fetchProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "../../services/product-service";
 
-const initialProducts: Product[] = [
-  { id: "p-1", name: "Bottled Water 500ml", category: "water", price: 0.4 },
-  { id: "p-2", name: "Canned Beans", category: "food", price: 0.9 },
-  { id: "p-3", name: "First Aid Kit", category: "healthcare", price: 12.5 },
-  { id: "p-4", name: "USB Charger", category: "electronics", price: 8.0 },
-];
-
-const CATEGORIES: (Category | "all")[] = [
+const CATEGORIES: (ProductCategory | "all")[] = [
   "all",
   "water",
   "food",
   "healthcare",
   "electronics",
+  "others"
 ];
 
-const FORM_CATEGORIES: Category[] = ["water", "food", "healthcare", "electronics"];
-
-type ProductFormData = {
-  name: string;
-  category: Category;
-  price: number;
-};
+const FORM_CATEGORIES: ProductCategory[] = [
+  "water",
+  "food",
+  "healthcare",
+  "electronics",
+  "others",
+];
 
 interface ProductModalProps {
   product: Product | null;
-  onSave: (data: ProductFormData) => void;
+  onSave: (data: CreateProductPayload) => void;
   onClose: () => void;
 }
 
 function ProductModal({ product, onSave, onClose }: ProductModalProps) {
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: product?.name ?? "",
+  const [formData, setFormData] = useState<CreateProductPayload>({
+    productName: product?.productName ?? "",
     category: product?.category ?? "water",
     price: product?.price ?? 0,
   });
 
   function handleSubmit() {
-    if (!formData.name.trim() || formData.price <= 0) {
+    if (!formData.productName.trim() || formData.price <= 0) {
       alert("Please fill in a valid name and price");
       return;
     }
@@ -55,8 +60,21 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
           <div className="prod-modal-title">
             {product ? "Edit Product" : "Add Product"}
           </div>
-          <button className="prod-modal-close" onClick={onClose} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <button
+            className="prod-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -68,8 +86,10 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
             <label>Product Name</label>
             <input
               className="input"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.productName}
+              onChange={(e) =>
+                setFormData({ ...formData, productName: e.target.value })
+              }
               placeholder="e.g. Bottled Water 500ml"
             />
           </div>
@@ -79,7 +99,10 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
               className="select"
               value={formData.category}
               onChange={(e) =>
-                setFormData({ ...formData, category: e.target.value as Category })
+                setFormData({
+                  ...formData,
+                  category: e.target.value as ProductCategory,
+                })
               }
             >
               {FORM_CATEGORIES.map((c) => (
@@ -119,20 +142,37 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
 }
 
 export default function Products() {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<Category | "all">("all");
+  const [category, setCategory] = useState<ProductCategory | "all">("all");
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const userJson = localStorage.getItem("currentUser");
-  const role = (userJson ? JSON.parse(userJson).role : "staff") as Role;
+  const idToken = localStorage.getItem("idToken");
+  const payload = idToken ? decodeToken(idToken) : null;
+  const groups = (payload?.["cognito:groups"] as string[]) ?? [];
+  const role = (groups[0] ?? "staff") as Role;
   const canManage = hasPermission(role, "products:manage");
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  async function loadProducts() {
+    setLoading(true);
+    try {
+      const data = await fetchProducts();
+      setProducts(data.map((p) => ({ ...p, price: Number(p.price) })));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const rows = products.filter(
     (p) =>
       (category === "all" || p.category === category) &&
-      p.name.toLowerCase().includes(search.toLowerCase()),
+      p.productName.toLowerCase().includes(search.toLowerCase()),
   );
 
   function handleAdd() {
@@ -145,27 +185,25 @@ export default function Products() {
     setShowModal(true);
   }
 
-  function handleSave(data: ProductFormData) {
+  async function handleSave(data: CreateProductPayload) {
     if (editingProduct) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editingProduct.id ? { ...p, ...data } : p,
-        ),
-      );
+      await updateProduct(editingProduct.id, data);
     } else {
-      const newProduct: Product = {
-        id: `p-${Date.now()}`,
-        ...data,
-      };
-      setProducts((prev) => [newProduct, ...prev]);
+      await createProduct(data);
     }
     setShowModal(false);
     setEditingProduct(null);
+    loadProducts();
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Delete this product?")) return;
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    await deleteProduct(id);
+    loadProducts();
+  }
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
   }
 
   return (
@@ -177,7 +215,15 @@ export default function Products() {
 
       <div className="pg-toolbar">
         <div className="search-wrap">
-          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -192,7 +238,9 @@ export default function Products() {
         <select
           className="filter-select"
           value={category}
-          onChange={(e) => setCategory(e.target.value as Category | "all")}
+          onChange={(e) =>
+            setCategory(e.target.value as ProductCategory | "all")
+          }
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
@@ -203,7 +251,14 @@ export default function Products() {
 
         {canManage && (
           <button className="btn btn--primary" onClick={handleAdd}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -225,7 +280,7 @@ export default function Products() {
           <tbody>
             {rows.map((p) => (
               <tr key={p.id}>
-                <td className="tbl-name">{p.name}</td>
+                <td className="tbl-name">{p.productName}</td>
                 <td>
                   <span className={`badge badge--cat-${p.category}`}>
                     {p.category}

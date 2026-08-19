@@ -290,6 +290,21 @@
   color: var(--danger-text);
 }
 
+.ord-badge--pending {
+  background: #f1efe8;
+  color: #6b6558;
+}
+
+.ord-badge--confirmed {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.ord-badge--delivered {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
 .ord-banner {
   background: var(--info-bg);
   border: 1px solid var(--info-border);
