@@ -1,69 +1,111 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "./invoices.css";
-import type { InvoiceItem } from "../../types/invoice";
+import type { SupplierInvoice, SupplierInvoiceItem } from "../../types/supplierInvoice";
+import type { Product } from "../../types/product";
+import {
+  fetchSupplierInvoice,
+  matchSupplierInvoiceItem,
+  confirmSupplierInvoice,
+  rejectSupplierInvoice,
+} from "../../services/invoice-service";
+import { fetchProducts } from "../../services/product-service";
+import { decodeToken } from "../../lib/cognito";
+import { hasPermission } from "../permissions/permissions";
+import type { Role } from "../permissions/permissions";
 
-const mockItems: InvoiceItem[] = [
-  {
-    id: "item-1",
-    extractedName: "Bottled Water 500ml",
-    quantity: 24,
-    unitPrice: 0.5,
-  },
-  {
-    id: "item-2",
-    extractedName: "Canned Beans 400g",
-    quantity: 12,
-    unitPrice: 1.2,
-  },
-  {
-    id: "item-3",
-    extractedName: "Organic Rice 1kg",
-    quantity: 10,
-    unitPrice: 2.5,
-  },
-];
-
-interface ReviewProps {
-  initialItems?: InvoiceItem[];
-  pdfUrl?: string;
-  onConfirm?: (items: InvoiceItem[]) => void;
-  onReject?: () => void;
-  onBack?: () => void;
-}
-
-export default function Review({
-  initialItems = mockItems,
-  pdfUrl = "https://www.w3.org/W3C/DesignIssues/diagrams/overview.pdf",
-  onConfirm,
-  onReject,
-  onBack,
-}: ReviewProps) {
+export default function Review() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [items, setItems] = useState<InvoiceItem[]>(initialItems);
 
-  const handleBack = onBack ?? (() => navigate(-1));
-  const handleReject = onReject ?? (() => navigate("/invoices"));
-  const handleConfirm =
-    onConfirm ??
-    ((confirmedItems) => {
-      console.log("Confirmed Invoice Items:", confirmedItems);
-      navigate("/invoices");
-    });
+  const [invoice, setInvoice] = useState<SupplierInvoice | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  function setQty(id: string, qty: number) {
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === id ? { ...it, quantity: Math.max(1, qty) } : it,
+  const idToken = localStorage.getItem("idToken");
+  const tokenPayload = idToken ? decodeToken(idToken) : null;
+  const reviewedBy = (tokenPayload?.email as string | undefined) ?? undefined;
+  const groups = (tokenPayload?.["cognito:groups"] as string[]) ?? [];
+  const role = (groups[0] ?? "staff") as Role;
+  const canApprove = hasPermission(role, "invoices:approve");
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    Promise.all([fetchSupplierInvoice(id), fetchProducts()])
+      .then(([inv, prods]) => {
+        if (cancelled) return;
+        setInvoice(inv);
+        setProducts(prods);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const handleBack = () => navigate(-1);
+
+  async function handleMatch(item: SupplierInvoiceItem, matchedProductId: string) {
+    if (!invoice || !matchedProductId) return;
+    await matchSupplierInvoiceItem(invoice.id, item.id, matchedProductId);
+    setInvoice({
+      ...invoice,
+      items: invoice.items.map((it) =>
+        it.id === item.id ? { ...it, matchedProductId } : it,
       ),
-    );
+    });
   }
+
+  async function handleConfirm() {
+    if (!invoice) return;
+    setSaving(true);
+    try {
+      await confirmSupplierInvoice(invoice.id, reviewedBy);
+      navigate("/invoices");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not confirm invoice.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleReject() {
+    if (!invoice) return;
+    if (!confirm("Are you sure you want to reject this invoice?")) return;
+    setSaving(true);
+    try {
+      await rejectSupplierInvoice(invoice.id, reviewedBy);
+      navigate("/invoices");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not reject invoice.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
+  }
+
+  if (!invoice) {
+    return <div style={{ padding: 24 }}>Invoice not found.</div>;
+  }
+
+  const isReviewable =
+    invoice.status === "pending_extraction" || invoice.status === "extracted";
 
   return (
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
           <h1 className="inv-pg-title">Review invoice</h1>
+          <p className="inv-pg-subtitle">
+            {invoice.extractedSupplierName ?? "Unknown supplier"}
+          </p>
         </div>
         <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -74,15 +116,27 @@ export default function Review({
         </button>
       </div>
 
-      <div className="inv-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        Confirming accepts the extracted data only. Stock is added later, when
-        the shipment arrives (delivered).
-      </div>
+      {isReviewable ? (
+        <div className="inv-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          Match each line item to a product before confirming. Confirming
+          accepts the extracted data only — stock is added later, when the
+          shipment arrives (delivered).
+        </div>
+      ) : (
+        <div className="inv-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          This invoice has already been {invoice.status.replaceAll("_", " ")}.
+        </div>
+      )}
 
       <div
         style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 16 }}
@@ -98,9 +152,9 @@ export default function Review({
             flexDirection: "column",
           }}
         >
-          {pdfUrl ? (
+          {invoice.fileUrl ? (
             <iframe
-              src={pdfUrl}
+              src={invoice.fileUrl}
               title="Invoice PDF Preview"
               style={{
                 width: "100%",
@@ -126,25 +180,33 @@ export default function Review({
                 <th>Extracted product</th>
                 <th>Qty</th>
                 <th>Unit price</th>
+                <th>Matched product</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((it) => (
+              {invoice.items.map((it) => (
                 <tr key={it.id}>
-                  <td>{it.extractedName}</td>
+                  <td>{it.extractedProductName}</td>
+                  <td>{it.quantity}</td>
+                  <td>{it.unitPrice != null ? `$${it.unitPrice.toFixed(2)}` : "—"}</td>
                   <td>
-                    <input
-                      className="inv-input"
-                      type="number"
-                      min="1"
-                      style={{ width: 80 }}
-                      value={it.quantity}
-                      onChange={(e) =>
-                        setQty(it.id, Number(e.target.value) || 1)
-                      }
-                    />
+                    <select
+                      className="inv-select"
+                      style={{ width: 180 }}
+                      value={it.matchedProductId ?? ""}
+                      disabled={!isReviewable}
+                      onChange={(e) => handleMatch(it, e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Select product
+                      </option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.productName}
+                        </option>
+                      ))}
+                    </select>
                   </td>
-                  <td>${it.unitPrice.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -152,24 +214,38 @@ export default function Review({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-        <button
-          className="inv-btn inv-btn--primary"
-          onClick={() => handleConfirm(items)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          Confirm
-        </button>
-        <button className="inv-btn inv-btn--danger" onClick={handleReject}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-          Reject
-        </button>
-      </div>
+      {isReviewable && canApprove && (
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button
+            className="inv-btn inv-btn--primary"
+            disabled={saving}
+            onClick={handleConfirm}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Confirm
+          </button>
+          <button
+            className="inv-btn inv-btn--danger"
+            disabled={saving}
+            onClick={handleReject}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            Reject
+          </button>
+        </div>
+      )}
+
+      {isReviewable && !canApprove && (
+        <p className="inv-subtext" style={{ marginTop: 20 }}>
+          Match each item to a product, then a manager can confirm or reject
+          this invoice.
+        </p>
+      )}
     </div>
   );
 }

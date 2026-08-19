@@ -1,60 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./stock.css";
-import type { LedgerEntry } from "../../types/stock";
+import type { StockMovement, StockMovementReason } from "../../types/stock";
+import { fetchStockMovements } from "../../services/stock-service";
 
-export const mockLedgerEntries: LedgerEntry[] = [
-  {
-    id: "led-01",
-    transferId: "tr-101",
-    timestamp: "2026-08-10 10:00",
-    productName: "Bottled Water 500ml",
-    quantity: 100,
-    fromWarehouse: "Main Warehouse",
-    toWarehouse: "North Branch",
-    performedBy: "Ahmad Ghader",
-    type: "TRANSFER_OUT",
-  },
-  {
-    id: "led-02",
-    transferId: "tr-102",
-    timestamp: "2026-08-11 14:30",
-    productName: "Canned Beans",
-    quantity: 50,
-    fromWarehouse: "Main Warehouse",
-    toWarehouse: "South Hub",
-    performedBy: "Ahmad Ghader",
-    type: "TRANSFER_IN",
-  },
-];
-
-interface LedgerProps {
-  entries?: LedgerEntry[];
-}
-
-const TYPE_LABELS: Record<LedgerEntry["type"], string> = {
-  TRANSFER_IN: "TRANSFER IN",
-  TRANSFER_OUT: "TRANSFER OUT",
-  ADJUSTMENT_IN: "ADJUSTMENT IN",
-  ADJUSTMENT_OUT: "ADJUSTMENT OUT",
+const TYPE_LABELS: Record<StockMovementReason, string> = {
+  transfer_in: "TRANSFER IN",
+  transfer_out: "TRANSFER OUT",
+  invoice_delivered: "INVOICE DELIVERED",
+  order_delivered: "ORDER DELIVERED",
+  adjustment: "ADJUSTMENT",
 };
 
-const TYPE_BADGE: Record<LedgerEntry["type"], string> = {
-  TRANSFER_IN: "stk-badge--success",
-  TRANSFER_OUT: "stk-badge--info",
-  ADJUSTMENT_IN: "stk-badge--success",
-  ADJUSTMENT_OUT: "stk-badge--warning",
+const TYPE_BADGE: Record<StockMovementReason, string> = {
+  transfer_in: "stk-badge--success",
+  transfer_out: "stk-badge--info",
+  invoice_delivered: "stk-badge--success",
+  order_delivered: "stk-badge--info",
+  adjustment: "stk-badge--warning",
 };
 
-export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
+export default function Ledger() {
+  const [entries, setEntries] = useState<StockMovement[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchStockMovements()
+      .then((data) => {
+        if (!cancelled) setEntries(data);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredEntries = entries.filter(
     (e) =>
-      e.productName.toLowerCase().includes(search.toLowerCase()) ||
-      (e.transferId ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (e.fromWarehouse ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (e.toWarehouse ?? "").toLowerCase().includes(search.toLowerCase()),
+      (e.product?.productName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.referenceId ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.warehouse?.warehouseName ?? "").toLowerCase().includes(search.toLowerCase()),
   );
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
+  }
 
   return (
     <div className="stk-pg">
@@ -66,7 +59,7 @@ export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
 
       <div className="stk-card">
         <div className="stk-card-header stk-ledger-header">
-          <div className="stk-card-title">Transfer Ledger Audit</div>
+          <div className="stk-card-title">Stock Movement Audit</div>
           <div className="search-wrap stk-ledger-search">
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -87,18 +80,18 @@ export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
             <thead>
               <tr>
                 <th>Ledger ID</th>
-                <th>Transfer Ref</th>
+                <th>Reference</th>
                 <th>Timestamp</th>
                 <th>Product</th>
-                <th>Qty Moved</th>
-                <th>Logged By</th>
+                <th>Warehouse</th>
+                <th>Qty Change</th>
                 <th>Type</th>
               </tr>
             </thead>
             <tbody>
               {filteredEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
                     No ledger records found.
                   </td>
                 </tr>
@@ -108,14 +101,19 @@ export default function Ledger({ entries = mockLedgerEntries }: LedgerProps) {
                     <td style={{ fontSize: 12, fontFamily: "monospace" }}>
                       {entry.id}
                     </td>
-                    <td style={{ fontWeight: 600 }}>{entry.transferId ?? "—"}</td>
-                    <td style={{ fontSize: 13 }}>{entry.timestamp}</td>
-                    <td>{entry.productName}</td>
-                    <td style={{ fontWeight: 600 }}>{entry.quantity}</td>
-                    <td style={{ fontSize: 13 }}>{entry.performedBy}</td>
+                    <td style={{ fontWeight: 600 }}>{entry.referenceId ?? "—"}</td>
+                    <td style={{ fontSize: 13 }}>
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </td>
+                    <td>{entry.product?.productName ?? "—"}</td>
+                    <td>{entry.warehouse?.warehouseName ?? "—"}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {entry.quantityChange > 0 ? "+" : ""}
+                      {entry.quantityChange}
+                    </td>
                     <td>
-                      <span className={`stk-badge ${TYPE_BADGE[entry.type]}`}>
-                        {TYPE_LABELS[entry.type]}
+                      <span className={`stk-badge ${TYPE_BADGE[entry.reason]}`}>
+                        {TYPE_LABELS[entry.reason]}
                       </span>
                     </td>
                   </tr>

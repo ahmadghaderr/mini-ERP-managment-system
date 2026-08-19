@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./orders.css";
-import { mockLedgerEntries } from "../stock/ledger";
-import { computeStockLevels } from "../stock/stock-utils";
+import { mockLedgerEntries, computeStockLevels } from "../stock/stock-utils";
 import type { OrderItem, ItemAvailability, OrderStep } from "../../types/order";
 
 const mockExtractedItems: OrderItem[] = [

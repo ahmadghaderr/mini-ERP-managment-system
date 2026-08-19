@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
 import "./stock.css";
-import { mockLedgerEntries } from "./ledger";
-import { rowKey, computeStockLevels } from "./stock-utils";
-import type { LedgerEntry, StockLevel } from "../../types/stock";
+import {
+  mockLedgerEntries,
+  rowKey,
+  computeStockLevels,
+  type LedgerEntry,
+  type StockLevel,
+} from "./stock-utils";
 
 const WAREHOUSE_NAMES = ["Main Warehouse", "North Branch", "South Hub"];
 

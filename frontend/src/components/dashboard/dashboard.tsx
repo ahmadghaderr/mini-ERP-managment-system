@@ -4,8 +4,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import "./dashboard.css";
-import { mockLedgerEntries } from "../stock/ledger";
-import { computeStockLevels } from "../stock/stock-utils";
+import { mockLedgerEntries, computeStockLevels } from "../stock/stock-utils";
 
 interface ShipmentRow {
   id: string;

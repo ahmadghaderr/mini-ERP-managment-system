@@ -1,17 +1,33 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./stock.css";
-import { mockLedgerEntries } from "./ledger";
-import type {
-  Warehouse,
-  NewTransferPayload,
-  TransferItem,
-  LedgerEntry,
-} from "../../types/stock";
+import { mockLedgerEntries, type LedgerEntry } from "./stock-utils";
 
 interface ProductOption {
   id: string;
   name: string;
+}
+
+interface Warehouse {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface TransferItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+}
+
+interface NewTransferPayload {
+  sourceWarehouseId: string;
+  sourceWarehouseName: string;
+  destinationWarehouseId: string;
+  destinationWarehouseName: string;
+  items: TransferItem[];
+  requestedBy: string;
+  notes?: string;
 }
 
 const mockWarehouses: Warehouse[] = [

@@ -1,79 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./invoices.css";
-import type { InvoiceType, InvoiceItem } from "../../types/invoice";
+import type { Warehouse } from "../../types/warehouse";
+import { fetchWarehouses } from "../../services/warehouse-service";
+import { uploadAndExtractSupplierInvoice } from "../../services/invoice-service";
 
-const mockWarehouses = ["Main Warehouse", "North Branch", "South Hub"];
+type ExtractionStep = "idle" | "extracting";
 
-const mockInvoiceTypes: InvoiceType[] = [
-  { id: "type-1", name: "Standard Tax Invoice" },
-  { id: "type-2", name: "Purchase Order" },
-  { id: "type-3", name: "Credit Note" },
-];
-
-const mockExtractedItems: InvoiceItem[] = [
-  {
-    id: "ext-1",
-    extractedName: "Bottled Water 500ml (24-pack)",
-    quantity: 15,
-    unitPrice: 4.5,
-  },
-  {
-    id: "ext-2",
-    extractedName: "Organic Coffee Beans 1kg",
-    quantity: 5,
-    unitPrice: 18.0,
-  },
-  {
-    id: "ext-3",
-    extractedName: "Paper Towel Rolls 12s",
-    quantity: 8,
-    unitPrice: 9.25,
-  },
-];
-
-type ExtractionStep = "idle" | "extracting" | "extracted";
-
-interface UploadProps {
-  warehouses?: string[];
-  invoiceTypes?: InvoiceType[];
-  onConfirm?: (payload: {
-    warehouse: string;
-    typeId: string;
-    items: InvoiceItem[];
-  }) => void;
-  onBack?: () => void;
-}
-
-export default function Upload({
-  warehouses = mockWarehouses,
-  invoiceTypes = mockInvoiceTypes,
-  onConfirm,
-  onBack,
-}: UploadProps) {
+export default function Upload() {
   const navigate = useNavigate();
+
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseId, setWarehouseId] = useState("");
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [warehouse, setWarehouse] = useState(warehouses[0] ?? "");
-  const [typeId, setTypeId] = useState(invoiceTypes[0]?.id ?? "");
   const [isDragging, setIsDragging] = useState(false);
-
   const [step, setStep] = useState<ExtractionStep>("idle");
-  const [extractedItems, setExtractedItems] = useState<InvoiceItem[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
 
-  const handleBack = onBack ?? (() => navigate(-1));
+  useEffect(() => {
+    let cancelled = false;
+    fetchWarehouses().then((data) => {
+      if (cancelled) return;
+      setWarehouses(data);
+      setWarehouseId((current) => current || (data[0]?.id ?? ""));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleBack = () => navigate(-1);
 
   function handleFileSelect(selectedFile: File) {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(selectedFile);
     setPreviewUrl(URL.createObjectURL(selectedFile));
-    setStep("idle");
-    setExtractedItems([]);
-    setIsEditing(false);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -97,58 +59,30 @@ export default function Upload({
     if (droppedFile) handleFileSelect(droppedFile);
   }
 
-  function handleStartExtraction() {
+  async function handleStartExtraction() {
     if (!file) return;
+    if (!warehouseId) {
+      alert("Please select a destination warehouse.");
+      return;
+    }
+
     setStep("extracting");
-
-    setTimeout(() => {
-      setExtractedItems(mockExtractedItems);
-      setStep("extracted");
-    }, 1500);
-  }
-
-  function handleItemChange(
-    id: string,
-    field: keyof InvoiceItem,
-    value: string | number,
-  ) {
-    setExtractedItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
-    );
-  }
-
-  function handleConfirm() {
-    if (onConfirm) {
-      onConfirm({ warehouse, typeId, items: extractedItems });
-    } else {
-      console.log("Invoice Confirmed:", {
+    try {
+      const { invoice, lowConfidenceFields } = await uploadAndExtractSupplierInvoice(
         file,
-        warehouse,
-        typeId,
-        items: extractedItems,
-      });
-      navigate("/invoices");
-    }
-  }
-
-  function handleReject() {
-    if (confirm("Are you sure you want to reject and discard this invoice?")) {
-      setFile(null);
-      setPreviewUrl(null);
+        warehouseId,
+      );
+      if (lowConfidenceFields.length > 0) {
+        alert(
+          `Extraction complete, but double-check these fields:\n${lowConfidenceFields.join("\n")}`,
+        );
+      }
+      navigate(`/invoices/review/${invoice.id}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not extract invoice data.");
       setStep("idle");
-      setExtractedItems([]);
-      setIsEditing(false);
     }
   }
-
-  function handleCheckManually() {
-    setIsEditing(true);
-  }
-
-  const calculatedTotal = extractedItems.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
-  );
 
   return (
     <div className="inv-pg">
@@ -174,32 +108,17 @@ export default function Upload({
           <div className="inv-card inv-upload-card">
             <div className="inv-filters-row">
               <div className="inv-field">
-                <label className="inv-label">Invoice Type</label>
-                <select
-                  className="inv-select"
-                  value={typeId}
-                  disabled={step === "extracting"}
-                  onChange={(e) => setTypeId(e.target.value)}
-                >
-                  {invoiceTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="inv-field">
                 <label className="inv-label">Destination Warehouse</label>
                 <select
                   className="inv-select"
-                  value={warehouse}
+                  value={warehouseId}
                   disabled={step === "extracting"}
-                  onChange={(e) => setWarehouse(e.target.value)}
+                  onChange={(e) => setWarehouseId(e.target.value)}
                 >
+                  {warehouses.length === 0 && <option value="">No warehouses available</option>}
                   {warehouses.map((w) => (
-                    <option key={w} value={w}>
-                      {w}
+                    <option key={w.id} value={w.id}>
+                      {w.warehouseName}
                     </option>
                   ))}
                 </select>
@@ -262,140 +181,6 @@ export default function Upload({
               <div className="inv-spinner" />
               <h3>Extracting line items...</h3>
               <p>Analyzing document structure, tables, and product details.</p>
-            </div>
-          )}
-
-          {step === "extracted" && (
-            <div className="inv-card inv-extracted-card">
-              <div className="inv-extracted-header">
-                <div>
-                  <h3>Extracted Line Items</h3>
-                  <p className="inv-subtext">
-                    {isEditing
-                      ? "Manual editing mode active — edit values below"
-                      : "Review extracted items before confirming"}
-                  </p>
-                </div>
-                <span className="inv-badge inv-badge--extracted">
-                  {extractedItems.length} items found
-                </span>
-              </div>
-
-              <div className="inv-table-wrapper">
-                <table className="inv-tbl">
-                  <thead>
-                    <tr>
-                      <th>Product Name</th>
-                      <th style={{ width: 80 }}>Qty</th>
-                      <th style={{ width: 100 }}>Unit Price</th>
-                      <th style={{ width: 90 }}>Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {extractedItems.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          {isEditing ? (
-                            <input
-                              className="inv-input inv-input--sm"
-                              value={item.extractedName}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  item.id,
-                                  "extractedName",
-                                  e.target.value,
-                                )
-                              }
-                            />
-                          ) : (
-                            item.extractedName
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <input
-                              className="inv-input inv-input--sm"
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  item.id,
-                                  "quantity",
-                                  Math.max(1, Number(e.target.value)),
-                                )
-                              }
-                            />
-                          ) : (
-                            item.quantity
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <input
-                              className="inv-input inv-input--sm"
-                              type="number"
-                              step="0.01"
-                              value={item.unitPrice}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  item.id,
-                                  "unitPrice",
-                                  Number(e.target.value),
-                                )
-                              }
-                            />
-                          ) : (
-                            `$${item.unitPrice.toFixed(2)}`
-                          )}
-                        </td>
-                        <td style={{ fontWeight: 700 }}>
-                          ${(item.quantity * item.unitPrice).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td
-                        colSpan={3}
-                        style={{ textAlign: "right", fontWeight: 700 }}
-                      >
-                        Total:
-                      </td>
-                      <td style={{ fontWeight: 800, color: "#0f172a" }}>
-                        ${calculatedTotal.toFixed(2)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              <div className="inv-actions-row">
-                <button className="inv-btn inv-btn--primary" onClick={handleConfirm}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  Confirm
-                </button>
-
-                {!isEditing && (
-                  <button
-                    className="inv-btn inv-btn--ghost"
-                    onClick={handleCheckManually}
-                  >
-                    Check manually
-                  </button>
-                )}
-
-                <button className="inv-btn inv-btn--danger" onClick={handleReject}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                  Reject
-                </button>
-              </div>
             </div>
           )}
         </div>
