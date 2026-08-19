@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { CustomerOrder } from './entities/customer-order.entity';
 import { CustomerOrderItem } from './entities/customer-order-item.entity';
+import { CustomerOrderItemAllocation } from './entities/customer-order-item-allocation.entity';
 import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
 import { CustomerOrderStatus, StockMovementReason } from '../../common/enums';
@@ -84,21 +85,40 @@ export class CustomerOrdersService {
       for (const item of order.items) {
         if (!item.matchedProductId) continue;
 
-        const stock = await manager.findOne(WarehouseProduct, {
-          where: {
-            warehouseId: order.warehouseId,
-            productId: item.matchedProductId,
-          },
-        });
-        const available =
-          (stock?.quantityOnHand ?? 0) - (stock?.quantityReserved ?? 0);
-        if (!stock || available < item.quantity) {
+        let remaining = item.quantity;
+
+        const stockRows = await manager
+          .createQueryBuilder(WarehouseProduct, 'wp')
+          .leftJoinAndSelect('wp.warehouse', 'warehouse')
+          .where('wp.productId = :productId', { productId: item.matchedProductId })
+          .orderBy('warehouse.createdAt', 'ASC')
+          .getMany();
+
+        for (const stock of stockRows) {
+          if (remaining <= 0) break;
+
+          const available = stock.quantityOnHand - stock.quantityReserved;
+          if (available <= 0) continue;
+
+          const take = Math.min(available, remaining);
+          stock.quantityReserved += take;
+          await manager.save(stock);
+
+          const allocation = manager.create(CustomerOrderItemAllocation, {
+            customerOrderItemId: item.id,
+            warehouseId: stock.warehouseId,
+            quantity: take,
+          });
+          await manager.save(allocation);
+
+          remaining -= take;
+        }
+
+        if (remaining > 0) {
           throw new BadRequestException(
-            `Not enough available stock for a product (have ${available}, need ${item.quantity})`,
+            `Not enough available stock across all warehouses for "${item.extractedProductName}" (short by ${remaining})`,
           );
         }
-        stock.quantityReserved += item.quantity;
-        await manager.save(stock);
       }
 
       order.status = CustomerOrderStatus.CONFIRMED;
@@ -118,28 +138,32 @@ export class CustomerOrdersService {
 
     return this.dataSource.transaction(async (manager) => {
       for (const item of order.items) {
-        if (!item.matchedProductId) continue;
+        const allocations = await manager.find(CustomerOrderItemAllocation, {
+          where: { customerOrderItemId: item.id },
+        });
 
-        const stock = await manager.findOne(WarehouseProduct, {
-          where: {
-            warehouseId: order.warehouseId,
+        for (const allocation of allocations) {
+          const stock = await manager.findOne(WarehouseProduct, {
+            where: {
+              warehouseId: allocation.warehouseId,
+              productId: item.matchedProductId,
+            },
+          });
+          if (!stock) continue;
+
+          stock.quantityOnHand -= allocation.quantity;
+          stock.quantityReserved -= allocation.quantity;
+          await manager.save(stock);
+
+          const movement = manager.create(StockMovement, {
+            warehouseId: allocation.warehouseId,
             productId: item.matchedProductId,
-          },
-        });
-        if (!stock) continue;
-
-        stock.quantityOnHand -= item.quantity;
-        stock.quantityReserved -= item.quantity;
-        await manager.save(stock);
-
-        const movement = manager.create(StockMovement, {
-          warehouseId: order.warehouseId,
-          productId: item.matchedProductId,
-          quantityChange: -item.quantity,
-          reason: StockMovementReason.ORDER_DELIVERED,
-          referenceId: order.id,
-        });
-        await manager.save(movement);
+            quantityChange: -allocation.quantity,
+            reason: StockMovementReason.ORDER_DELIVERED,
+            referenceId: order.id,
+          });
+          await manager.save(movement);
+        }
       }
 
       order.status = CustomerOrderStatus.DELIVERED;
@@ -154,17 +178,26 @@ export class CustomerOrdersService {
     return this.dataSource.transaction(async (manager) => {
       if (order.status === CustomerOrderStatus.CONFIRMED) {
         for (const item of order.items) {
-          if (!item.matchedProductId) continue;
-          const stock = await manager.findOne(WarehouseProduct, {
-            where: {
-              warehouseId: order.warehouseId,
-              productId: item.matchedProductId,
-            },
+          const allocations = await manager.find(CustomerOrderItemAllocation, {
+            where: { customerOrderItemId: item.id },
           });
-          if (stock) {
-            stock.quantityReserved -= item.quantity;
-            await manager.save(stock);
+
+          for (const allocation of allocations) {
+            const stock = await manager.findOne(WarehouseProduct, {
+              where: {
+                warehouseId: allocation.warehouseId,
+                productId: item.matchedProductId,
+              },
+            });
+            if (stock) {
+              stock.quantityReserved -= allocation.quantity;
+              await manager.save(stock);
+            }
           }
+
+          await manager.delete(CustomerOrderItemAllocation, {
+            customerOrderItemId: item.id,
+          });
         }
       }
 

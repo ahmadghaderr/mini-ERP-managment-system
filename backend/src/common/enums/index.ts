@@ -9,6 +9,7 @@ export enum ProductCategory {
   FOOD = 'food',
   HEALTHCARE = 'healthcare',
   ELECTRONICS = 'electronics',
+  OTHERS = 'others',
 }
 
 export enum StockMovementReason {

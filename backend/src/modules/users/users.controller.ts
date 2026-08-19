@@ -12,8 +12,10 @@ import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Roles } from '../../auth/roles.decorator';
 
 @Controller('users')
+@Roles('admin')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
