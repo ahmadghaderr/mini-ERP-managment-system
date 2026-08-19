@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@aws-sdk/client-cognito-identity-provider@^3.1111.0":
-  version "3.1111.0"
-  resolved "https://registry.npmjs.org/@aws-sdk/client-cognito-identity-provider/-/client-cognito-identity-provider-3.1111.0.tgz#42160b845702a134ea89db403900edfa30da3217"
-  integrity sha512-wMMwWOJIaSnoMKitEi1ZCanKMo0kXdN7DQMT8TJA/s2yRwKMw2z6rayBxTbzLENRO8Ct3tInHtbh/9+g3b6/OA==
+"@aws-sdk/client-cognito-identity-provider@^3.1113.0":
+  version "3.1113.0"
+  resolved "https://registry.npmjs.org/@aws-sdk/client-cognito-identity-provider/-/client-cognito-identity-provider-3.1113.0.tgz#d017eb9e7b8c93bc99302801b31c93ff3b2a1ee8"
+  integrity sha512-fpJL2Cq54XYDo+Atx1IMz40bNU/ox7mX16XJ0FMT/CDhpNyH1U+J7QKzrFEoSxB6gI44Uz4kteV3qFyIEH3OEA==
   dependencies:
     "@aws-sdk/core" "^3.977.8"
     "@aws-sdk/credential-provider-node" "^3.972.80"
