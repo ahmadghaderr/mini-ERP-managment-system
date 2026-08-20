@@ -43,6 +43,7 @@ export class UsersService {
   }
 
   async findByCognitoSubOrNull(cognitoSub: string): Promise<User | null> {
+
     return this.userRepo.findOne({ where: { cognitoSub } });
   }
 

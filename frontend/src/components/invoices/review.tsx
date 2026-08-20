@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./invoices.css";
-import type { SupplierInvoice, SupplierInvoiceItem } from "../../types/supplierInvoice";
+import type {
+  SupplierInvoice,
+  SupplierInvoiceItem,
+} from "../../types/supplierInvoice";
 import type { Product } from "../../types/product";
 import {
   fetchSupplierInvoice,
@@ -25,7 +28,7 @@ export default function Review() {
 
   const idToken = localStorage.getItem("idToken");
   const tokenPayload = idToken ? decodeToken(idToken) : null;
-  const reviewedBy = (tokenPayload?.email as string | undefined) ?? undefined;
+  const reviewedBy = (tokenPayload?.sub as string | undefined) ?? undefined;
   const groups = (tokenPayload?.["cognito:groups"] as string[]) ?? [];
   const role = (groups[0] ?? "staff") as Role;
   const canApprove = hasPermission(role, "invoices:approve");
@@ -49,7 +52,10 @@ export default function Review() {
 
   const handleBack = () => navigate(-1);
 
-  async function handleMatch(item: SupplierInvoiceItem, matchedProductId: string) {
+  async function handleMatch(
+    item: SupplierInvoiceItem,
+    matchedProductId: string,
+  ) {
     if (!invoice || !matchedProductId) return;
     await matchSupplierInvoiceItem(invoice.id, item.id, matchedProductId);
     setInvoice({
@@ -62,6 +68,7 @@ export default function Review() {
 
   async function handleConfirm() {
     if (!invoice) return;
+    console.log("DEBUG reviewedBy:", reviewedBy, "full payload:", tokenPayload);
     setSaving(true);
     try {
       await confirmSupplierInvoice(invoice.id, reviewedBy);
@@ -108,7 +115,14 @@ export default function Review() {
           </p>
         </div>
         <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
@@ -118,7 +132,14 @@ export default function Review() {
 
       {isReviewable ? (
         <div className="inv-banner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -129,7 +150,14 @@ export default function Review() {
         </div>
       ) : (
         <div className="inv-banner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -184,31 +212,39 @@ export default function Review() {
               </tr>
             </thead>
             <tbody>
-              {invoice.items.map((it) => (
-                <tr key={it.id}>
-                  <td>{it.extractedProductName}</td>
-                  <td>{it.quantity}</td>
-                  <td>{it.unitPrice != null ? `$${it.unitPrice.toFixed(2)}` : "—"}</td>
-                  <td>
-                    <select
-                      className="inv-select"
-                      style={{ width: 180 }}
-                      value={it.matchedProductId ?? ""}
-                      disabled={!isReviewable}
-                      onChange={(e) => handleMatch(it, e.target.value)}
-                    >
-                      <option value="" disabled>
-                        Select product
-                      </option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.productName}
+              {invoice.items.map((it) => {
+                const unitPriceNum =
+                  it.unitPrice != null ? Number(it.unitPrice) : null;
+                return (
+                  <tr key={it.id}>
+                    <td>{it.extractedProductName}</td>
+                    <td>{it.quantity}</td>
+                    <td>
+                      {unitPriceNum != null && !Number.isNaN(unitPriceNum)
+                        ? `$${unitPriceNum.toFixed(2)}`
+                        : "—"}
+                    </td>
+                    <td>
+                      <select
+                        className="inv-select"
+                        style={{ width: 180 }}
+                        value={it.matchedProductId ?? ""}
+                        disabled={!isReviewable}
+                        onChange={(e) => handleMatch(it, e.target.value)}
+                      >
+                        <option value="" disabled>
+                          Select product
                         </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.productName}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -221,7 +257,14 @@ export default function Review() {
             disabled={saving}
             onClick={handleConfirm}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
             Confirm
@@ -231,7 +274,14 @@ export default function Review() {
             disabled={saving}
             onClick={handleReject}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
