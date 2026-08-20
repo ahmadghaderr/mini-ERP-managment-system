@@ -66,19 +66,19 @@ export async function matchSupplierInvoiceItem(
   );
 }
 
-export async function confirmSupplierInvoice(id: string, reviewedBy?: string): Promise<SupplierInvoice> {
+export async function confirmSupplierInvoice(id: string): Promise<SupplierInvoice> {
   const response = await axios.patch(
     `${API_BASE}/supplier-invoices/${id}/confirm`,
-    { reviewedBy },
+    {},
     { headers: authHeaders() },
   );
   return response.data;
 }
 
-export async function rejectSupplierInvoice(id: string, reviewedBy?: string): Promise<SupplierInvoice> {
+export async function rejectSupplierInvoice(id: string): Promise<SupplierInvoice> {
   const response = await axios.patch(
     `${API_BASE}/supplier-invoices/${id}/reject`,
-    { reviewedBy },
+    {},
     { headers: authHeaders() },
   );
   return response.data;

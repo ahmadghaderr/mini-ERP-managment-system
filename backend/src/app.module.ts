@@ -11,6 +11,7 @@ import { SupplierInvoicesModule } from './modules/supplier-invoices/supplier-inv
 import { CustomerOrdersModule } from './modules/customer-orders/customer-orders.module';
 import { AccessRequestsModule } from './modules/access-requests/access-requests.module';
 import { AuthModule } from './auth/auth.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -18,6 +19,8 @@ import { AuthModule } from './auth/auth.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    ScheduleModule.forRoot(),
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

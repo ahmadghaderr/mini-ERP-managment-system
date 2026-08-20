@@ -6,13 +6,16 @@ import {
   Delete,
   Param,
   Body,
+  Req,
   HttpCode,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomerOrdersService } from './customer-orders.service';
-import { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
-import { ReviewCustomerOrderDto } from './dto/review-customer-order.dto';
 import { MatchItemDto } from './dto/match-item.dto';
 import { Roles } from '../../auth/roles.decorator';
+import { RequestWithUser } from '../../auth/types';
 
 @Controller('customer-orders')
 export class CustomerOrdersController {
@@ -31,9 +34,13 @@ export class CustomerOrdersController {
   }
 
   @Roles('admin', 'staff')
-  @Post()
-  create(@Body() data: CreateCustomerOrderDto) {
-    return this.service.create(data);
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('warehouseId') warehouseId: string,
+  ) {
+    return this.service.uploadAndExtract(file, warehouseId);
   }
 
   @Roles('admin', 'staff')
@@ -48,8 +55,8 @@ export class CustomerOrdersController {
 
   @Roles('admin', 'manager')
   @Patch(':id/confirm')
-  confirm(@Param('id') id: string, @Body() body: ReviewCustomerOrderDto) {
-    return this.service.confirm(id, body?.reviewedBy);
+  confirm(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.service.confirm(id, req.user.sub);
   }
 
   @Roles('admin', 'manager')
@@ -60,8 +67,8 @@ export class CustomerOrdersController {
 
   @Roles('admin', 'manager')
   @Patch(':id/reject')
-  reject(@Param('id') id: string, @Body() body: ReviewCustomerOrderDto) {
-    return this.service.reject(id, body?.reviewedBy);
+  reject(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.service.reject(id, req.user.sub);
   }
 
   @Roles('admin', 'manager')

@@ -1,25 +1,36 @@
-export interface OrderItem {
-  id: string;
-  extractedName: string;
-  quantity: number;
-}
-
-export type ItemAvailability = "available" | "partial" | "unavailable";
-
-export type OrderStep = "idle" | "extracting" | "extracted";
-
-export interface NewCustomerOrderPayload {
-  customerName: string;
-  items: OrderItem[];
-}
-
 export type CustomerOrderStatus = "pending" | "confirmed" | "delivered" | "rejected";
 
-export interface CustomerOrderSummary {
+export interface CustomerOrderItem {
   id: string;
-  customerName: string;
-  orderDate: string;
-  deliveryDate: string;
-  warehouse: string;
+  customerOrderId: string;
+  extractedProductName: string;
+  matchedProductId: string | null;
+  quantity: number;
+  unitPrice: number | null;
+}
+
+export interface CustomerOrder {
+  id: string;
+  fileUrl: string;
+  extractedCustomerName?: string;
+  warehouseId: string;
   status: CustomerOrderStatus;
+  uploadedAt: string;
+  confirmedAt: string | null;
+  deliveredAt: string | null;
+  rejectedAt: string | null;
+  reviewedBy: string | null;
+  items: CustomerOrderItem[];
+  warehouse: {
+    id: string;
+    warehouseName: string;
+    warehouseLocation: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export interface UploadCustomerOrderResponse {
+  order: CustomerOrder;
+  lowConfidenceFields: string[];
 }

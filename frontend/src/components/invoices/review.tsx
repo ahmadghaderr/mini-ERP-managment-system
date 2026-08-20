@@ -11,6 +11,7 @@ import {
   matchSupplierInvoiceItem,
   confirmSupplierInvoice,
   rejectSupplierInvoice,
+  deleteSupplierInvoice,
 } from "../../services/invoice-service";
 import { fetchProducts } from "../../services/product-service";
 import { decodeToken } from "../../lib/cognito";
@@ -28,7 +29,6 @@ export default function Review() {
 
   const idToken = localStorage.getItem("idToken");
   const tokenPayload = idToken ? decodeToken(idToken) : null;
-  const reviewedBy = (tokenPayload?.sub as string | undefined) ?? undefined;
   const groups = (tokenPayload?.["cognito:groups"] as string[]) ?? [];
   const role = (groups[0] ?? "staff") as Role;
   const canApprove = hasPermission(role, "invoices:approve");
@@ -68,10 +68,9 @@ export default function Review() {
 
   async function handleConfirm() {
     if (!invoice) return;
-    console.log("DEBUG reviewedBy:", reviewedBy, "full payload:", tokenPayload);
     setSaving(true);
     try {
-      await confirmSupplierInvoice(invoice.id, reviewedBy);
+      await confirmSupplierInvoice(invoice.id);
       navigate("/invoices");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Could not confirm invoice.");
@@ -85,10 +84,30 @@ export default function Review() {
     if (!confirm("Are you sure you want to reject this invoice?")) return;
     setSaving(true);
     try {
-      await rejectSupplierInvoice(invoice.id, reviewedBy);
+      await rejectSupplierInvoice(invoice.id);
       navigate("/invoices");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Could not reject invoice.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!invoice) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this invoice? This action cannot be undone.",
+      )
+    )
+      return;
+
+    setSaving(true);
+    try {
+      await deleteSupplierInvoice(invoice.id);
+      navigate("/invoices");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not delete invoice.");
     } finally {
       setSaving(false);
     }
@@ -114,20 +133,44 @@ export default function Review() {
             {invoice.extractedSupplierName ?? "Unknown supplier"}
           </p>
         </div>
-        <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Back
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back
+          </button>
+          {canApprove && (
+            <button
+              className="inv-btn inv-btn--danger"
+              disabled={saving}
+              onClick={handleDelete}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+              Delete
+            </button>
+          )}
+        </div>
       </div>
 
       {isReviewable ? (

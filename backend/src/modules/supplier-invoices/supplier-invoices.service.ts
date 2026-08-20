@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, LessThanOrEqual } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   S3Client,
   PutObjectCommand,
@@ -25,12 +27,14 @@ import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 
 const MIN_CONFIDENCE = 85;
 const PRESIGNED_URL_TTL_SECONDS = 900;
+const AUTO_DELIVER_DELAY_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class SupplierInvoicesService {
   private readonly s3: S3Client;
   private readonly textract: TextractClient;
   private readonly S3_BUCKET: string;
+  private readonly logger = new Logger(SupplierInvoicesService.name);
 
   constructor(
     @InjectRepository(SupplierInvoice)
@@ -310,6 +314,26 @@ export class SupplierInvoicesService {
       invoice.deliveredAt = new Date();
       return manager.save(invoice);
     });
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async autoDeliverConfirmedInvoices(): Promise<void> {
+    const cutoff = new Date(Date.now() - AUTO_DELIVER_DELAY_MS);
+    const dueInvoices = await this.invoiceRepo.find({
+      where: {
+        status: SupplierInvoiceStatus.CONFIRMED,
+        confirmedAt: LessThanOrEqual(cutoff),
+      },
+    });
+
+    for (const invoice of dueInvoices) {
+      try {
+        await this.deliver(invoice.id);
+        this.logger.log(`Auto-delivered invoice ${invoice.id}`);
+      } catch (err) {
+        this.logger.error(`Failed to auto-deliver invoice ${invoice.id}`, err);
+      }
+    }
   }
 
   async remove(id: string): Promise<void> {

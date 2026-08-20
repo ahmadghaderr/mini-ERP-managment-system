@@ -1,34 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./orders.css";
-import type { CustomerOrderSummary, CustomerOrderStatus } from "../../types/order";
-
-const mockOrders: CustomerOrderSummary[] = [
-  {
-    id: "co-01",
-    customerName: "Acme Retail Co.",
-    orderDate: "2026-08-03",
-    deliveryDate: "2026-08-16",
-    warehouse: "Main Warehouse",
-    status: "confirmed",
-  },
-  {
-    id: "co-02",
-    customerName: "Greenfield Market",
-    orderDate: "2026-08-06",
-    deliveryDate: "2026-08-18",
-    warehouse: "North Branch",
-    status: "delivered",
-  },
-  {
-    id: "co-03",
-    customerName: "Urban Grocers",
-    orderDate: "2026-08-09",
-    deliveryDate: "—",
-    warehouse: "Main Warehouse",
-    status: "pending",
-  },
-];
+import type { CustomerOrder, CustomerOrderStatus } from "../../types/order";
+import { fetchCustomerOrders } from "../../services/customerOrder-service";
 
 const STATUSES: (CustomerOrderStatus | "all")[] = [
   "all",
@@ -39,22 +13,53 @@ const STATUSES: (CustomerOrderStatus | "all")[] = [
 ];
 
 interface ListProps {
-  orders?: CustomerOrderSummary[];
   onUploadClick?: () => void;
 }
 
-export default function List({ orders = mockOrders, onUploadClick }: ListProps) {
+export default function List({ onUploadClick }: ListProps) {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<CustomerOrderStatus | "all">("all");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCustomerOrders()
+      .then((data) => {
+        if (!cancelled) setOrders(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load orders.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleUpload = onUploadClick ?? (() => navigate("/orders/upload"));
 
   const rows = orders.filter(
     (order) =>
       (status === "all" || order.status === status) &&
-      order.customerName.toLowerCase().includes(search.toLowerCase())
+      (order.extractedCustomerName ?? "")
+        .toLowerCase()
+        .includes(search.toLowerCase()),
   );
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading orders...</div>;
+  }
+
+  if (error) {
+    return <div style={{ padding: 24, color: "crimson" }}>{error}</div>;
+  }
 
   return (
     <div className="ord-pg">
@@ -103,8 +108,8 @@ export default function List({ orders = mockOrders, onUploadClick }: ListProps) 
           <thead>
             <tr>
               <th>Customer</th>
-              <th>Order date</th>
-              <th>Delivery date</th>
+              <th>Uploaded</th>
+              <th>Delivered</th>
               <th>Warehouse</th>
               <th>Status</th>
             </tr>
@@ -118,11 +123,18 @@ export default function List({ orders = mockOrders, onUploadClick }: ListProps) 
               </tr>
             ) : (
               rows.map((order) => (
-                <tr key={order.id}>
-                  <td>{order.customerName}</td>
-                  <td>{order.orderDate}</td>
-                  <td>{order.deliveryDate}</td>
-                  <td>{order.warehouse}</td>
+                <tr
+                  key={order.id}
+                  style={{ cursor: "pointer" }}
+                >
+                  <td>{order.extractedCustomerName ?? "Unknown customer"}</td>
+                  <td>{new Date(order.uploadedAt).toLocaleDateString()}</td>
+                  <td>
+                    {order.deliveredAt
+                      ? new Date(order.deliveredAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td>{order.warehouse?.warehouseName ?? "—"}</td>
                   <td>
                     <span className={`ord-badge ord-badge--${order.status}`}>
                       {order.status}

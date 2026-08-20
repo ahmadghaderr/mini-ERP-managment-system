@@ -22,6 +22,7 @@ const TYPE_BADGE: Record<StockMovementReason, string> = {
 export default function Ledger() {
   const [entries, setEntries] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -29,6 +30,11 @@ export default function Ledger() {
     fetchStockMovements()
       .then((data) => {
         if (!cancelled) setEntries(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load ledger.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -49,6 +55,10 @@ export default function Ledger() {
     return <div style={{ padding: 24 }}>Loading...</div>;
   }
 
+  if (error) {
+    return <div style={{ padding: 24, color: "crimson" }}>{error}</div>;
+  }
+
   return (
     <div className="stk-pg">
       <div className="stk-pg-head">
@@ -60,7 +70,7 @@ export default function Ledger() {
       <div className="stk-card">
         <div className="stk-card-header stk-ledger-header">
           <div className="stk-card-title">Stock Movement Audit</div>
-          <div className="search-wrap stk-ledger-search">
+          <div className="search-wrap stk-ledger-search" style={{ position: "relative" }}>
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -72,6 +82,28 @@ export default function Ledger() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: 16,
+                  lineHeight: 1,
+                  padding: 4,
+                  color: "#888",
+                }}
+              >
+                &times;
+              </button>
+            )}
           </div>
         </div>
 

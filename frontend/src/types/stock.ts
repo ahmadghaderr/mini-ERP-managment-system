@@ -56,3 +56,14 @@ export interface CreateTransferPayload {
   quantity: number;
   createdBy?: string;
 }
+
+export interface StockRow {
+  productName: string;
+  quantityOnHand: number;
+}
+
+export interface StockTableProps {
+  rows: StockRow[];
+  emptyMessage: string;
+  emptyPadding: number;
+}
