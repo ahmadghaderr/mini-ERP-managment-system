@@ -13,6 +13,7 @@ import { SupplierInvoice } from './modules/supplier-invoices/entities/supplier-i
 import { SupplierInvoiceItem } from './modules/supplier-invoices/entities/supplier-invoice-item.entity';
 import { CustomerOrder } from './modules/customer-orders/entities/customer-order.entity';
 import { CustomerOrderItem } from './modules/customer-orders/entities/customer-order-item.entity';
+import { CustomerOrderItemAllocation } from './modules/customer-orders/entities/customer-order-item-allocation.entity';
 import { AccessRequest } from './modules/access-requests/entities/access-request.entity';
 
 export default new DataSource({
@@ -33,6 +34,7 @@ export default new DataSource({
     SupplierInvoiceItem,
     CustomerOrder,
     CustomerOrderItem,
+    CustomerOrderItemAllocation,
     AccessRequest,
   ],
   migrations: ['src/migrations/*.ts'],

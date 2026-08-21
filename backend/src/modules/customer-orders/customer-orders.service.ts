@@ -102,7 +102,7 @@ export class CustomerOrdersService {
 
   async uploadAndExtract(
     file: Express.Multer.File,
-    warehouseId: string,
+    warehouseId?: string,
   ): Promise<{ order: CustomerOrder; lowConfidenceFields: string[] }> {
     const s3Key = `orders/${randomUUID()}-${file.originalname}`;
     await this.s3.send(
@@ -116,7 +116,7 @@ export class CustomerOrdersService {
 
     let order = this.orderRepo.create({
       fileUrl: `s3://${this.S3_BUCKET}/${s3Key}`,
-      warehouseId,
+      warehouseId: warehouseId ?? undefined,
       status: CustomerOrderStatus.PENDING,
     });
     order = await this.orderRepo.save(order);

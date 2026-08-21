@@ -100,7 +100,7 @@ export default function List() {
               <th>Delivery date</th>
               <th>Warehouse</th>
               <th>Status</th>
-              <th></th>
+              <th style={{ width: 90 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -129,7 +129,7 @@ export default function List() {
                   </td>
                   <td>
                     <button
-                      className="inv-link-btn"
+                      className="inv-btn inv-btn--ghost"
                       onClick={() => handleReview(inv.id)}
                     >
                       Review

@@ -16,6 +16,7 @@ import Products from './components/products/products';
 import Users from './components/users/users';
 import RequestAccess from './components/access-requests/requestAccess';
 import PendingRequests from './components/access-requests/pendingRequests';
+import ReviewOrder from './components/orders/reviewOrder';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/invoices/review/:id" element={<InvoiceReview />} />
           <Route path="/orders" element={<OrdersList />} />
           <Route path="/orders/upload" element={<CustomerOrder />} />
+          <Route path="/orders/:id" element={<ReviewOrder />} />
           <Route path="/transfers" element={<StockTransfer />} />
           <Route path="/users" element={<Users />} />
           <Route path="/products" element={<Products />} />

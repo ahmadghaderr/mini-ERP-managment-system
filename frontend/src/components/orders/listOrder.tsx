@@ -112,21 +112,19 @@ export default function List({ onUploadClick }: ListProps) {
               <th>Delivered</th>
               <th>Warehouse</th>
               <th>Status</th>
+              <th style={{ width: 90 }}></th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={6} style={{ textAlign: "center", padding: 24 }}>
                   No orders found.
                 </td>
               </tr>
             ) : (
               rows.map((order) => (
-                <tr
-                  key={order.id}
-                  style={{ cursor: "pointer" }}
-                >
+                <tr key={order.id}>
                   <td>{order.extractedCustomerName ?? "Unknown customer"}</td>
                   <td>{new Date(order.uploadedAt).toLocaleDateString()}</td>
                   <td>
@@ -139,6 +137,14 @@ export default function List({ onUploadClick }: ListProps) {
                     <span className={`ord-badge ord-badge--${order.status}`}>
                       {order.status}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      className="ord-btn ord-btn--ghost"
+                      onClick={() => navigate(`/orders/${order.id}`)}
+                    >
+                      Review
+                    </button>
                   </td>
                 </tr>
               ))

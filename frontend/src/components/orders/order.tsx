@@ -7,16 +7,39 @@ import {
   confirmCustomerOrder,
   rejectCustomerOrder,
 } from "../../services/customerOrder-service";
-import { fetchWarehouses} from "../../services/warehouse-service";
 import { fetchProducts } from "../../services/product-service";
-import type { CustomerOrder } from "../../types/order";
+import { getApiErrorMessage } from "../../lib/apiError";
+import type { CustomerOrder, CustomerOrderItem } from "../../types/order";
 import type { Product } from "../../types/product";
-import type { Warehouse } from "../../types/warehouse";
 
 type UploadStep = "idle" | "uploading" | "extracted";
 
 interface OrderProps {
   onBack?: () => void;
+}
+
+function normalize(text: string): string {
+  return text.trim().toLowerCase();
+}
+
+function findBestProductMatch(
+  extractedName: string,
+  products: Product[],
+): Product | undefined {
+  const normalizedExtracted = normalize(extractedName);
+  if (!normalizedExtracted) return undefined;
+
+  const exact = products.find(
+    (p) => normalize(p.productName) === normalizedExtracted,
+  );
+  if (exact) return exact;
+
+  const partial = products.find(
+    (p) =>
+      normalize(p.productName).includes(normalizedExtracted) ||
+      normalizedExtracted.includes(normalize(p.productName)),
+  );
+  return partial;
 }
 
 export default function Order({ onBack }: OrderProps) {
@@ -27,24 +50,21 @@ export default function Order({ onBack }: OrderProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [warehouseId, setWarehouseId] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
 
   const [step, setStep] = useState<UploadStep>("idle");
   const [order, setOrder] = useState<CustomerOrder | null>(null);
   const [lowConfidenceFields, setLowConfidenceFields] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [autoMatching, setAutoMatching] = useState(false);
 
   useEffect(() => {
-    Promise.all([fetchWarehouses(), fetchProducts()])
-      .then(([w, p]) => {
-        setWarehouses(w);
-        setProducts(p);
-      })
+    fetchProducts()
+      .then((p) => setProducts(p))
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Could not load warehouses/products.");
+        setError(getApiErrorMessage(err));
       });
   }, []);
 
@@ -55,6 +75,7 @@ export default function Order({ onBack }: OrderProps) {
     setStep("idle");
     setOrder(null);
     setError(null);
+    setActionError(null);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -78,26 +99,52 @@ export default function Order({ onBack }: OrderProps) {
     if (dropped) handleFileSelect(dropped);
   }
 
+  async function autoMatchItems(items: CustomerOrderItem[], productList: Product[]) {
+    if (productList.length === 0) return;
+    setAutoMatching(true);
+    let current = items;
+    for (const item of items) {
+      if (item.matchedProductId) continue;
+      const match = findBestProductMatch(item.extractedProductName, productList);
+      if (!match) continue;
+      try {
+        const updatedItem = await matchCustomerOrderItem(
+          item.customerOrderId,
+          item.id,
+          match.id,
+        );
+        current = current.map((it) => (it.id === item.id ? updatedItem : it));
+        setOrder((prev) => (prev ? { ...prev, items: current } : prev));
+      } catch {
+        // leave unmatched, user can pick manually
+      }
+    }
+    setAutoMatching(false);
+  }
+
   async function handleUpload() {
-    if (!file || !warehouseId) {
-      setError("Select a warehouse and a file before uploading.");
+    if (!file) {
+      setError("Select a file before uploading.");
       return;
     }
     setStep("uploading");
     setError(null);
+    setActionError(null);
     try {
-      const result = await uploadCustomerOrder(file, warehouseId);
+      const result = await uploadCustomerOrder(file);
       setOrder(result.order);
       setLowConfidenceFields(result.lowConfidenceFields);
       setStep("extracted");
+      autoMatchItems(result.order.items, products);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
+      setError(getApiErrorMessage(err));
       setStep("idle");
     }
   }
 
   async function handleMatch(itemId: string, matchedProductId: string) {
     if (!order || !matchedProductId) return;
+    setActionError(null);
     try {
       const updatedItem = await matchCustomerOrderItem(order.id, itemId, matchedProductId);
       setOrder({
@@ -105,18 +152,19 @@ export default function Order({ onBack }: OrderProps) {
         items: order.items.map((it) => (it.id === itemId ? updatedItem : it)),
       });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not match item.");
+      setActionError(getApiErrorMessage(err));
     }
   }
 
   async function handleConfirm() {
     if (!order) return;
     setSaving(true);
+    setActionError(null);
     try {
       await confirmCustomerOrder(order.id);
       navigate("/orders");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not confirm order.");
+      setActionError(getApiErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -126,17 +174,23 @@ export default function Order({ onBack }: OrderProps) {
     if (!order) return;
     if (!confirm("Are you sure you want to reject this order?")) return;
     setSaving(true);
+    setActionError(null);
     try {
       await rejectCustomerOrder(order.id);
       navigate("/orders");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not reject order.");
+      setActionError(getApiErrorMessage(err));
     } finally {
       setSaving(false);
     }
   }
 
   const allMatched = order?.items.every((it) => it.matchedProductId) ?? false;
+  const totalPrice =
+    order?.items.reduce(
+      (sum, item) => sum + (Number(item.unitPrice) || 0) * item.quantity,
+      0,
+    ) ?? 0;
 
   return (
     <div className="ord-pg">
@@ -158,25 +212,6 @@ export default function Order({ onBack }: OrderProps) {
       <div className="ord-upload-grid">
         <div className="ord-left-panel">
           <div className="ord-card ord-upload-card">
-            <div className="ord-field">
-              <label className="ord-label">Warehouse</label>
-              <select
-                className="ord-input"
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-                disabled={step !== "idle"}
-              >
-                <option value="" disabled>
-                  Select warehouse
-                </option>
-                {warehouses.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.warehouseName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {step === "idle" && (
               <div className="ord-field">
                 <label className="ord-label">Order Document</label>
@@ -231,7 +266,9 @@ export default function Order({ onBack }: OrderProps) {
                 <div>
                   <h3>Requested Items</h3>
                   <p className="ord-subtext">
-                    Match each item to a product before confirming.
+                    {autoMatching
+                      ? "Auto-matching items to products..."
+                      : "Review matched products, adjust if needed, then confirm."}
                   </p>
                 </div>
                 <span className="ord-badge ord-badge--extracted">
@@ -242,6 +279,12 @@ export default function Order({ onBack }: OrderProps) {
               {lowConfidenceFields.length > 0 && (
                 <div className="ord-banner">
                   Low-confidence extraction on: {lowConfidenceFields.join(", ")}
+                </div>
+              )}
+
+              {actionError && (
+                <div className="ord-banner" style={{ borderColor: "crimson", color: "crimson" }}>
+                  {actionError}
                 </div>
               )}
 
@@ -287,10 +330,14 @@ export default function Order({ onBack }: OrderProps) {
                 </table>
               </div>
 
+              <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 0", fontWeight: 600 }}>
+                Total: ${totalPrice.toFixed(2)}
+              </div>
+
               <div className="ord-actions-row">
                 <button
                   className="ord-btn ord-btn--primary"
-                  disabled={!allMatched || saving}
+                  disabled={!allMatched || saving || autoMatching}
                   onClick={handleConfirm}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

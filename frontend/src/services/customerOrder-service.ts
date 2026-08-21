@@ -26,11 +26,13 @@ export async function fetchCustomerOrder(id: string): Promise<CustomerOrder> {
 
 export async function uploadCustomerOrder(
   file: File,
-  warehouseId: string,
+  warehouseId?: string,
 ): Promise<UploadCustomerOrderResponse> {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('warehouseId', warehouseId);
+  if (warehouseId) {
+    formData.append('warehouseId', warehouseId);
+  }
 
   const response = await axios.post(`${API_BASE}/customer-orders/upload`, formData, {
     headers: {
@@ -79,4 +81,10 @@ export async function rejectCustomerOrder(id: string): Promise<CustomerOrder> {
     { headers: authHeaders() },
   );
   return response.data;
+}
+
+export async function deleteCustomerOrder(id: string): Promise<void> {
+  await axios.delete(`${API_BASE}/customer-orders/${id}`, {
+    headers: authHeaders(),
+  });
 }
