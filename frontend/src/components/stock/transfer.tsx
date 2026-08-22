@@ -131,9 +131,6 @@ export default function Transfer() {
       <div className="stk-pg-head">
         <div>
           <div className="stk-pg-title">Create Stock Transfer</div>
-          <p className="stk-pg-subtitle">
-            Move inventory between warehouses and log it to the ledger.
-          </p>
         </div>
         <button className="stk-btn stk-btn--ghost" onClick={handleBack}>
           ← Back

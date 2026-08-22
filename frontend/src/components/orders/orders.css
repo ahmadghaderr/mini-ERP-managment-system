@@ -660,3 +660,23 @@
     min-height: 260px;
   }
 }
+
+.ord-total-label {
+  text-align: right;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-top: 2px solid var(--border-color);
+  padding: 14px 16px !important;
+  background: var(--bg-surface-subtle);
+}
+
+.ord-total-value {
+  text-align: right;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--primary);
+  border-top: 2px solid var(--border-color);
+  padding: 14px 16px !important;
+  background: var(--bg-surface-subtle);
+}

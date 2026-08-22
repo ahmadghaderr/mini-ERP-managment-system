@@ -685,3 +685,53 @@
   padding: 32px;
   color: var(--text-muted);
 }
+.stk-tbl--excel th,
+.stk-tbl--excel td {
+  white-space: nowrap;
+}
+.stk-tbl--excel {
+  table-layout: fixed;
+}
+
+.stk-tbl--excel th {
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 18px;
+}
+
+.stk-tbl--excel td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stk-col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 5;
+}
+
+.stk-col-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  right: 3px;
+  width: 2px;
+  background: var(--border-color-hover);
+  border-radius: 1px;
+  transition: background 0.15s ease;
+}
+
+.stk-col-resize-handle:hover::after,
+.stk-col-resize-handle.is-resizing::after {
+  background: var(--primary);
+  width: 3px;
+}

@@ -258,11 +258,17 @@ export default function OrderReview() {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2} className="ord-total-label">
+                  Total
+                </td>
+                <td colSpan={2} className="ord-total-value">
+                  ${totalPrice.toFixed(2)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 0", fontWeight: 600 }}>
-            Total: ${totalPrice.toFixed(2)}
-          </div>
         </div>
       </div>
 

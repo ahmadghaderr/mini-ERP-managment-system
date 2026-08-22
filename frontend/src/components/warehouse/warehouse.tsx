@@ -137,7 +137,6 @@ export default function Warehouses() {
     <div className="pg">
       <div className="pg-head">
         <h1 className="pg-title">Warehouses</h1>
-        <p className="pg-subtitle">Manage your storage locations and facilities.</p>
       </div>
 
       <div className="pg-toolbar">

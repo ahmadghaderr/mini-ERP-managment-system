@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./stock.css";
 import type { StockMovement, StockMovementReason } from "../../types/stock";
 import { fetchStockMovements } from "../../services/stock-service";
@@ -19,22 +19,48 @@ const TYPE_BADGE: Record<StockMovementReason, string> = {
   adjustment: "stk-badge--warning",
 };
 
+type ColumnKey = "id" | "referenceId" | "createdAt" | "product" | "warehouse" | "quantityChange" | "reason";
+
+const DEFAULT_WIDTHS: Record<ColumnKey, number> = {
+  id: 140,
+  referenceId: 140,
+  createdAt: 160,
+  product: 160,
+  warehouse: 140,
+  quantityChange: 110,
+  reason: 160,
+};
+
+const MIN_COLUMN_WIDTH = 60;
+
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  id: "Ledger ID",
+  referenceId: "Reference",
+  createdAt: "Timestamp",
+  product: "Product",
+  warehouse: "Warehouse",
+  quantityChange: "Qty Change",
+  reason: "Type",
+};
+
+const COLUMN_ORDER: ColumnKey[] = [
+  "id", "referenceId", "createdAt", "product", "warehouse", "quantityChange", "reason",
+];
+
 export default function Ledger() {
   const [entries, setEntries] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [colWidths, setColWidths] = useState<Record<ColumnKey, number>>(DEFAULT_WIDTHS);
+
+  const resizingRef = useRef<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
+  const [resizingKey, setResizingKey] = useState<ColumnKey | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetchStockMovements()
       .then((data) => {
         if (!cancelled) setEntries(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load ledger.");
-        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -44,6 +70,34 @@ export default function Ledger() {
     };
   }, []);
 
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (!resizingRef.current) return;
+      const { key, startX, startWidth } = resizingRef.current;
+      const delta = e.clientX - startX;
+      const newWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + delta);
+      setColWidths((prev) => ({ ...prev, [key]: newWidth }));
+    }
+
+    function handleMouseUp() {
+      resizingRef.current = null;
+      setResizingKey(null);
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  function startResize(key: ColumnKey, e: React.MouseEvent) {
+    e.preventDefault();
+    resizingRef.current = { key, startX: e.clientX, startWidth: colWidths[key] };
+    setResizingKey(key);
+  }
+
   const filteredEntries = entries.filter(
     (e) =>
       (e.product?.productName ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -51,12 +105,36 @@ export default function Ledger() {
       (e.warehouse?.warehouseName ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+  function renderCell(entry: StockMovement, key: ColumnKey) {
+    switch (key) {
+      case "id":
+        return <span style={{ fontSize: 12, fontFamily: "monospace" }}>{entry.id}</span>;
+      case "referenceId":
+        return <span style={{ fontWeight: 600 }}>{entry.referenceId ?? "—"}</span>;
+      case "createdAt":
+        return <span style={{ fontSize: 13 }}>{new Date(entry.createdAt).toLocaleString()}</span>;
+      case "product":
+        return entry.product?.productName ?? "—";
+      case "warehouse":
+        return entry.warehouse?.warehouseName ?? "—";
+      case "quantityChange":
+        return (
+          <span style={{ fontWeight: 600 }}>
+            {entry.quantityChange > 0 ? "+" : ""}
+            {entry.quantityChange}
+          </span>
+        );
+      case "reason":
+        return (
+          <span className={`stk-badge ${TYPE_BADGE[entry.reason]}`}>
+            {TYPE_LABELS[entry.reason]}
+          </span>
+        );
+    }
   }
 
-  if (error) {
-    return <div style={{ padding: 24, color: "crimson" }}>{error}</div>;
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
   }
 
   return (
@@ -70,7 +148,7 @@ export default function Ledger() {
       <div className="stk-card">
         <div className="stk-card-header stk-ledger-header">
           <div className="stk-card-title">Stock Movement Audit</div>
-          <div className="search-wrap stk-ledger-search" style={{ position: "relative" }}>
+          <div className="search-wrap stk-ledger-search">
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -82,42 +160,27 @@ export default function Ledger() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                aria-label="Clear search"
-                style={{
-                  position: "absolute",
-                  right: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  border: "none",
-                  background: "none",
-                  cursor: "pointer",
-                  fontSize: 16,
-                  lineHeight: 1,
-                  padding: 4,
-                  color: "#888",
-                }}
-              >
-                &times;
-              </button>
-            )}
           </div>
         </div>
 
         <div className="stk-tbl-wrap">
-          <table className="stk-tbl">
+          <table className="stk-tbl stk-tbl--excel">
+            <colgroup>
+              {COLUMN_ORDER.map((key) => (
+                <col key={key} style={{ width: colWidths[key] }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                <th>Ledger ID</th>
-                <th>Reference</th>
-                <th>Timestamp</th>
-                <th>Product</th>
-                <th>Warehouse</th>
-                <th>Qty Change</th>
-                <th>Type</th>
+                {COLUMN_ORDER.map((key) => (
+                  <th key={key}>
+                    {COLUMN_LABELS[key]}
+                    <div
+                      className={`stk-col-resize-handle ${resizingKey === key ? "is-resizing" : ""}`}
+                      onMouseDown={(e) => startResize(key, e)}
+                    />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -130,24 +193,9 @@ export default function Ledger() {
               ) : (
                 filteredEntries.map((entry) => (
                   <tr key={entry.id}>
-                    <td style={{ fontSize: 12, fontFamily: "monospace" }}>
-                      {entry.id}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{entry.referenceId ?? "—"}</td>
-                    <td style={{ fontSize: 13 }}>
-                      {new Date(entry.createdAt).toLocaleString()}
-                    </td>
-                    <td>{entry.product?.productName ?? "—"}</td>
-                    <td>{entry.warehouse?.warehouseName ?? "—"}</td>
-                    <td style={{ fontWeight: 600 }}>
-                      {entry.quantityChange > 0 ? "+" : ""}
-                      {entry.quantityChange}
-                    </td>
-                    <td>
-                      <span className={`stk-badge ${TYPE_BADGE[entry.reason]}`}>
-                        {TYPE_LABELS[entry.reason]}
-                      </span>
-                    </td>
+                    {COLUMN_ORDER.map((key) => (
+                      <td key={key}>{renderCell(entry, key)}</td>
+                    ))}
                   </tr>
                 ))
               )}

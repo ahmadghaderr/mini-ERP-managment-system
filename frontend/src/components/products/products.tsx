@@ -210,7 +210,6 @@ export default function Products() {
     <div className="pg">
       <div className="pg-head">
         <h1 className="pg-title">Products</h1>
-        <p className="pg-subtitle">Manage your product catalog and pricing.</p>
       </div>
 
       <div className="pg-toolbar">

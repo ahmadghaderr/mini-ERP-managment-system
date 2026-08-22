@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
+  BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import "./dashboard.css";
 import { fetchStockLevels, fetchStockMovements } from "../../services/stock-service";
 import { fetchProducts } from "../../services/product-service";
+import { fetchCustomerOrders } from "../../services/customerOrder-service";
+import { fetchSupplierInvoices } from "../../services/invoice-service";
 import type { WarehouseStock, StockMovement } from "../../types/stock";
 import type { Product } from "../../types/product";
+import type { CustomerOrder } from "../../types/order";
+import type { SupplierInvoice } from "../../types/supplierInvoice";
 
 interface ShipmentRow {
   id: string;
@@ -16,43 +21,42 @@ interface ShipmentRow {
   expectedDeliveryDate: string;
 }
 
-// TODO: no backend endpoint yet aggregates "upcoming shipments" —
-// could be derived from confirmed supplier invoices with a future
-// extractedDeliveryDate once that's needed for real.
-const mockUpcomingShipments: ShipmentRow[] = [
-  { id: "ship-1", supplierName: "Global Foods Co.", warehouseName: "Main Warehouse", expectedDeliveryDate: "2026-08-16" },
-  { id: "ship-2", supplierName: "AquaPure Supplies", warehouseName: "North Branch", expectedDeliveryDate: "2026-08-18" },
-  { id: "ship-3", supplierName: "Harvest Distributors", warehouseName: "South Hub", expectedDeliveryDate: "2026-08-22" },
-  { id: "ship-4", supplierName: "Cedar Imports", warehouseName: "Main Warehouse", expectedDeliveryDate: "2026-08-23" },
-  { id: "ship-5", supplierName: "BlueWave Foods", warehouseName: "North Branch", expectedDeliveryDate: "2026-08-24" },
-  { id: "ship-6", supplierName: "Sunrise Produce", warehouseName: "South Hub", expectedDeliveryDate: "2026-08-25" },
-  { id: "ship-7", supplierName: "MetroPack Ltd.", warehouseName: "Main Warehouse", expectedDeliveryDate: "2026-08-27" },
-  { id: "ship-8", supplierName: "GreenLeaf Co.", warehouseName: "North Branch", expectedDeliveryDate: "2026-08-28" },
-  { id: "ship-9", supplierName: "Orient Traders", warehouseName: "South Hub", expectedDeliveryDate: "2026-08-30" },
-  { id: "ship-10", supplierName: "Delta Supplies", warehouseName: "Main Warehouse", expectedDeliveryDate: "2026-09-01" },
-];
-
-// TODO: no backend endpoint aggregates revenue/spend across confirmed
-// invoices and orders yet — illustrative mock figures until that
-// reporting endpoint exists.
-const mockCompletedSales = [
-  { productName: "Bottled Water 500ml", quantity: 500, unitPrice: 0.75 },
-  { productName: "Canned Beans", quantity: 220, unitPrice: 1.8 },
-  { productName: "Rice 1kg", quantity: 140, unitPrice: 2.9 },
-];
-
-const mockApprovedPurchases = [
-  { productName: "Bottled Water 500ml", quantity: 600, unitPrice: 0.45 },
-  { productName: "Canned Beans", quantity: 260, unitPrice: 1.05 },
-  { productName: "Rice 1kg", quantity: 180, unitPrice: 1.8 },
-];
-
-function getTotalRevenue(): number {
-  return mockCompletedSales.reduce((sum, s) => sum + s.quantity * s.unitPrice, 0);
+function computeUpcomingShipments(invoices: SupplierInvoice[]): ShipmentRow[] {
+  const now = Date.now();
+  return invoices
+    .filter((inv) => inv.status === "confirmed" && inv.extractedDeliveryDate)
+    .filter((inv) => new Date(inv.extractedDeliveryDate as string).getTime() >= now)
+    .sort(
+      (a, b) =>
+        new Date(a.extractedDeliveryDate as string).getTime() -
+        new Date(b.extractedDeliveryDate as string).getTime(),
+    )
+    .map((inv) => ({
+      id: inv.id,
+      supplierName: inv.extractedSupplierName ?? "Unknown supplier",
+      warehouseName: inv.warehouse?.warehouseName ?? "Unknown warehouse",
+      expectedDeliveryDate: inv.extractedDeliveryDate as string,
+    }));
 }
 
-function getTotalSpend(): number {
-  return mockApprovedPurchases.reduce((sum, p) => sum + p.quantity * p.unitPrice, 0);
+function orderTotal(order: CustomerOrder): number {
+  return order.items.reduce((sum, it) => sum + (Number(it.unitPrice) || 0) * it.quantity, 0);
+}
+
+function invoiceTotal(invoice: SupplierInvoice): number {
+  return invoice.items.reduce((sum, it) => sum + (Number(it.unitPrice) || 0) * it.quantity, 0);
+}
+
+function computeTotalRevenue(orders: CustomerOrder[]): number {
+  return orders
+    .filter((o) => o.status === "confirmed" || o.status === "delivered")
+    .reduce((sum, o) => sum + orderTotal(o), 0);
+}
+
+function computeTotalSpend(invoices: SupplierInvoice[]): number {
+  return invoices
+    .filter((inv) => inv.status === "confirmed" || inv.status === "delivered")
+    .reduce((sum, inv) => sum + invoiceTotal(inv), 0);
 }
 
 function formatCurrency(value: number): string {
@@ -70,47 +74,132 @@ const GRID_LINE = "#edf2f7";
 const AXIS_SUB = "#718096";
 
 type Range = "Day" | "Week" | "Month";
+type BucketUnit = "day" | "week" | "month";
 
-const revenueByRange: Record<Range, { label: string; revenue: number; spend: number }[]> = {
-  Day: [
-    { label: "9a", revenue: 120, spend: 90 },
-    { label: "11a", revenue: 180, spend: 130 },
-    { label: "1p", revenue: 240, spend: 150 },
-    { label: "3p", revenue: 200, spend: 170 },
-    { label: "5p", revenue: 290, spend: 190 },
-    { label: "7p", revenue: 320, spend: 210 },
-  ],
-  Week: [
-    { label: "Mon", revenue: 640, spend: 420 },
-    { label: "Tue", revenue: 720, spend: 500 },
-    { label: "Wed", revenue: 810, spend: 540 },
-    { label: "Thu", revenue: 690, spend: 520 },
-    { label: "Fri", revenue: 940, spend: 610 },
-    { label: "Sat", revenue: 1010, spend: 700 },
-    { label: "Sun", revenue: 880, spend: 640 },
-  ],
-  Month: [
-    { label: "Mar", revenue: 820, spend: 610 },
-    { label: "Apr", revenue: 940, spend: 680 },
-    { label: "May", revenue: 1010, spend: 720 },
-    { label: "Jun", revenue: 890, spend: 700 },
-    { label: "Jul", revenue: 1120, spend: 810 },
-    { label: "Aug", revenue: 1177, spend: 867 },
-  ],
+const RANGE_CONFIG: Record<Range, { count: number; unit: BucketUnit }> = {
+  Day: { count: 7, unit: "day" },
+  Week: { count: 6, unit: "week" },
+  Month: { count: 6, unit: "month" },
 };
 
-const orderStatus = [
-  { name: "Delivered", value: 42 },
-  { name: "Confirmed", value: 18 },
-  { name: "Pending", value: 9 },
-];
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function startOfWeek(d: Date): Date {
+  const x = startOfDay(d);
+  const day = x.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  x.setDate(x.getDate() - diff);
+  return x;
+}
+
+function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+function addUnit(d: Date, unit: BucketUnit, n: number): Date {
+  const x = new Date(d);
+  if (unit === "day") x.setDate(x.getDate() + n);
+  if (unit === "week") x.setDate(x.getDate() + 7 * n);
+  if (unit === "month") x.setMonth(x.getMonth() + n);
+  return x;
+}
+
+function bucketLabel(d: Date, unit: BucketUnit): string {
+  if (unit === "month") return d.toLocaleDateString("en-US", { month: "short" });
+  if (unit === "week") return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { weekday: "short" });
+}
+
+interface RevenueSpendPoint {
+  label: string;
+  revenue: number;
+  spend: number;
+}
+
+function computeRevenueSpendSeries(
+  orders: CustomerOrder[],
+  invoices: SupplierInvoice[],
+  range: Range,
+): RevenueSpendPoint[] {
+  const { count, unit } = RANGE_CONFIG[range];
+  const startFn = unit === "day" ? startOfDay : unit === "week" ? startOfWeek : startOfMonth;
+  const anchor = startFn(new Date());
+
+  const buckets: { start: Date; end: Date; label: string; revenue: number; spend: number }[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const s = addUnit(anchor, unit, -i);
+    const e = addUnit(s, unit, 1);
+    buckets.push({ start: s, end: e, label: bucketLabel(s, unit), revenue: 0, spend: 0 });
+  }
+
+  function addToBucket(dateStr: string | null, amount: number, key: "revenue" | "spend") {
+    if (!dateStr) return;
+    const d = new Date(dateStr);
+    const bucket = buckets.find((b) => d >= b.start && d < b.end);
+    if (bucket) bucket[key] += amount;
+  }
+
+  orders.forEach((o) => {
+    if (o.status !== "confirmed" && o.status !== "delivered") return;
+    addToBucket(o.confirmedAt, orderTotal(o), "revenue");
+  });
+
+  invoices.forEach((inv) => {
+    if (inv.status !== "confirmed" && inv.status !== "delivered") return;
+    addToBucket(inv.confirmedAt, invoiceTotal(inv), "spend");
+  });
+
+  return buckets.map((b) => ({
+    label: b.label,
+    revenue: Math.round(b.revenue * 100) / 100,
+    spend: Math.round(b.spend * 100) / 100,
+  }));
+}
+
+interface OrderStatusPoint {
+  name: string;
+  value: number;
+}
+
+function computeOrderStatusBreakdown(orders: CustomerOrder[]): OrderStatusPoint[] {
+  const counts = { Delivered: 0, Confirmed: 0, Pending: 0 };
+  orders.forEach((o) => {
+    if (o.status === "delivered") counts.Delivered += 1;
+    else if (o.status === "confirmed") counts.Confirmed += 1;
+    else if (o.status === "pending") counts.Pending += 1;
+  });
+  return [
+    { name: "Delivered", value: counts.Delivered },
+    { name: "Confirmed", value: counts.Confirmed },
+    { name: "Pending", value: counts.Pending },
+  ].filter((row) => row.value > 0);
+}
 const PIE_COLORS = [TEAL, TEAL_DARK, TEAL_LIGHT];
 
 const SHIPMENTS_PAGE_SIZE = 3;
 const DEAD_STOCK_OPTIONS = [30, 60, 90] as const;
-const DEAD_STOCK_ALERT_THRESHOLD_DAYS = 60;
 const REPEAT_STOCKOUT_MIN_EVENTS = 2;
 const SPIKE_MULTIPLIER = 2;
+
+const CATEGORY_ORDER = ["water", "food", "healthcare", "electronics", "others"] as const;
+const CATEGORY_LABELS: Record<string, string> = {
+  water: "Water",
+  food: "Food",
+  healthcare: "Healthcare",
+  electronics: "Electronics",
+  others: "Others",
+};
+const CATEGORY_COLORS: Record<string, string> = {
+  water: "#6cc6d9",
+  food: "#3ab5cc",
+  healthcare: "#2a94a8",
+  electronics: "#b2dde8",
+  others: "#e2e8f0",
+};
 
 interface DeadStockRow {
   productName: string;
@@ -254,7 +343,50 @@ function computeConsumptionSpikes(movements: StockMovement[]): SpikeRow[] {
   return rows.sort((a, b) => b.multiplier - a.multiplier);
 }
 
-type AlertKey = "deadStock" | "repeatStockouts" | "spikes";
+interface CategoryValueRow {
+  category: string;
+  value: number;
+}
+
+function computeCategoryValues(stock: WarehouseStock[], products: Product[]): CategoryValueRow[] {
+  const priceById = new Map(products.map((p) => [p.id, Number(p.price)]));
+  const categoryById = new Map(products.map((p) => [p.id, p.category]));
+  const valueByCategory = new Map<string, number>();
+
+  stock.forEach((row) => {
+    const price = priceById.get(row.productId) ?? 0;
+    const category = categoryById.get(row.productId) ?? "others";
+    const value = row.quantityOnHand * price;
+    valueByCategory.set(category, (valueByCategory.get(category) ?? 0) + value);
+  });
+
+  return CATEGORY_ORDER
+    .map((cat) => ({ category: cat, value: valueByCategory.get(cat) ?? 0 }))
+    .filter((row) => row.value > 0);
+}
+
+interface WarehouseValueRow {
+  warehouseName: string;
+  value: number;
+}
+
+function computeWarehouseValues(stock: WarehouseStock[], products: Product[]): WarehouseValueRow[] {
+  const priceById = new Map(products.map((p) => [p.id, Number(p.price)]));
+  const valueByWarehouse = new Map<string, number>();
+
+  stock.forEach((row) => {
+    const price = priceById.get(row.productId) ?? 0;
+    const name = row.warehouse?.warehouseName ?? "Unknown";
+    const value = row.quantityOnHand * price;
+    valueByWarehouse.set(name, (valueByWarehouse.get(name) ?? 0) + value);
+  });
+
+  return Array.from(valueByWarehouse.entries())
+    .map(([warehouseName, value]) => ({ warehouseName, value }))
+    .sort((a, b) => b.value - a.value);
+}
+
+type AlertKey = "repeatStockouts" | "spikes";
 
 export default function Dashboard() {
   const userJson = localStorage.getItem("currentUser");
@@ -263,6 +395,8 @@ export default function Dashboard() {
   const [stock, setStock] = useState<WarehouseStock[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const [showDeadStock, setShowDeadStock] = useState(false);
@@ -271,12 +405,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchStockLevels(), fetchStockMovements(), fetchProducts()])
-      .then(([stockData, movementsData, productsData]) => {
+    Promise.all([
+      fetchStockLevels(),
+      fetchStockMovements(),
+      fetchProducts(),
+      fetchCustomerOrders(),
+      fetchSupplierInvoices(),
+    ])
+      .then(([stockData, movementsData, productsData, ordersData, invoicesData]) => {
         if (cancelled) return;
         setStock(stockData);
         setMovements(movementsData);
         setProducts(productsData);
+        setOrders(ordersData);
+        setInvoices(invoicesData);
       })
       .finally(() => {
         if (!cancelled) setLoadingData(false);
@@ -286,34 +428,34 @@ export default function Dashboard() {
     };
   }, []);
 
-  const totalInventoryValue = useMemo(() => {
-    const priceById = new Map(products.map((p) => [p.id, Number(p.price)]));
-    return stock.reduce((sum, row) => sum + row.quantityOnHand * (priceById.get(row.productId) ?? 0), 0);
-  }, [stock, products]);
-
   const deadStockRows = useMemo(
     () => computeDeadStock(stock, movements, deadStockDays),
     [stock, movements, deadStockDays],
   );
 
-  const deadStockAlertCount = useMemo(
-    () => computeDeadStock(stock, movements, DEAD_STOCK_ALERT_THRESHOLD_DAYS).length,
-    [stock, movements],
-  );
-
   const repeatStockoutRows = useMemo(() => computeRepeatStockouts(movements), [movements]);
   const spikeRows = useMemo(() => computeConsumptionSpikes(movements), [movements]);
 
-  const totalRevenue = getTotalRevenue();
-  const totalSpend = getTotalSpend();
+  const categoryValues = useMemo(() => computeCategoryValues(stock, products), [stock, products]);
+  const warehouseValues = useMemo(() => computeWarehouseValues(stock, products), [stock, products]);
+
+  const totalRevenue = useMemo(() => computeTotalRevenue(orders), [orders]);
+  const totalSpend = useMemo(() => computeTotalSpend(invoices), [invoices]);
   const netValue = totalRevenue - totalSpend;
+
+  const upcomingShipments = useMemo(() => computeUpcomingShipments(invoices), [invoices]);
+  const orderStatusBreakdown = useMemo(() => computeOrderStatusBreakdown(orders), [orders]);
 
   const [range, setRange] = useState<Range>("Month");
   const [shipmentPage, setShipmentPage] = useState(0);
 
-  const chartData = revenueByRange[range];
-  const shipmentPageCount = Math.ceil(mockUpcomingShipments.length / SHIPMENTS_PAGE_SIZE);
-  const visibleShipments = mockUpcomingShipments.slice(
+  const chartData = useMemo(
+    () => computeRevenueSpendSeries(orders, invoices, range),
+    [orders, invoices, range],
+  );
+
+  const shipmentPageCount = Math.max(1, Math.ceil(upcomingShipments.length / SHIPMENTS_PAGE_SIZE));
+  const visibleShipments = upcomingShipments.slice(
     shipmentPage * SHIPMENTS_PAGE_SIZE,
     shipmentPage * SHIPMENTS_PAGE_SIZE + SHIPMENTS_PAGE_SIZE,
   );
@@ -343,21 +485,17 @@ export default function Dashboard() {
       <div className="dash-stat-grid">
         <div className="dash-stat-card">
           <span className="dash-stat-label">Total Revenue</span>
-          <span className="dash-stat-value">{formatCurrency(totalRevenue)}</span>
+          <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalRevenue)}</span>
         </div>
         <div className="dash-stat-card">
           <span className="dash-stat-label">Total Spend</span>
-          <span className="dash-stat-value">{formatCurrency(totalSpend)}</span>
+          <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalSpend)}</span>
         </div>
         <div className="dash-stat-card">
           <span className="dash-stat-label">Net Value</span>
           <span className={`dash-stat-value ${netValue >= 0 ? "dash-stat-value--positive" : "dash-stat-value--negative"}`}>
-            {formatCurrency(netValue)}
+            {loadingData ? "…" : formatCurrency(netValue)}
           </span>
-        </div>
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">Total Inventory Value</span>
-          <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalInventoryValue)}</span>
         </div>
       </div>
 
@@ -388,7 +526,7 @@ export default function Dashboard() {
             {visibleShipments.length === 0 ? (
               <tr>
                 <td colSpan={3} style={{ textAlign: "center", padding: 20 }}>
-                  No upcoming shipments.
+                  {loadingData ? "Loading…" : "No upcoming shipments."}
                 </td>
               </tr>
             ) : (
@@ -432,7 +570,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
-                <Tooltip />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Area type="monotone" dataKey="revenue" stroke={TEAL} strokeWidth={2.5} fill="url(#dashRevFill)" />
                 <Area type="monotone" dataKey="spend" stroke={TEAL_DARK} strokeWidth={2} fill="url(#dashSpendFill)" strokeDasharray="4 3" />
               </AreaChart>
@@ -445,21 +583,87 @@ export default function Dashboard() {
             <div className="dash-card-title">Orders by status</div>
           </div>
           <div className="dash-card-body">
-            <ResponsiveContainer width="100%" height={240}>
+            {orderStatusBreakdown.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)", fontSize: 14 }}>
+                {loadingData ? "Loading…" : "No orders yet."}
+              </div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie data={orderStatusBreakdown} dataKey="value" nameKey="name" innerRadius={56} outerRadius={86} paddingAngle={3}>
+                      {orderStatusBreakdown.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="dash-legend">
+                  {orderStatusBreakdown.map((e, i) => (
+                    <div key={i} className="dash-legend-item">
+                      <span className="dash-legend-dot" style={{ background: PIE_COLORS[i] }} />
+                      {e.name}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="dash-charts">
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <div className="dash-card-title">Inventory value by warehouse</div>
+          </div>
+          <div className="dash-card-body">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={warehouseValues} layout="vertical" margin={{ left: 8, right: 16, top: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} horizontal={false} />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 12, fill: AXIS_SUB }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `$${v}`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="warehouseName"
+                  tick={{ fontSize: 12, fill: AXIS_SUB }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={100}
+                />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Bar dataKey="value" fill={TEAL} radius={[0, 4, 4, 0]} maxBarSize={28} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <div className="dash-card-title">Stock value by category</div>
+          </div>
+          <div className="dash-card-body">
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={orderStatus} dataKey="value" nameKey="name" innerRadius={56} outerRadius={86} paddingAngle={3}>
-                  {orderStatus.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i]} />
+                <Pie data={categoryValues} dataKey="value" nameKey="category" innerRadius={50} outerRadius={80} paddingAngle={3}>
+                  {categoryValues.map((row) => (
+                    <Cell key={row.category} fill={CATEGORY_COLORS[row.category]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
               </PieChart>
             </ResponsiveContainer>
             <div className="dash-legend">
-              {orderStatus.map((e, i) => (
-                <div key={i} className="dash-legend-item">
-                  <span className="dash-legend-dot" style={{ background: PIE_COLORS[i] }} />
-                  {e.name}
+              {categoryValues.map((row) => (
+                <div key={row.category} className="dash-legend-item">
+                  <span className="dash-legend-dot" style={{ background: CATEGORY_COLORS[row.category] }} />
+                  {CATEGORY_LABELS[row.category]}
                 </div>
               ))}
             </div>
@@ -476,53 +680,6 @@ export default function Dashboard() {
           </svg>
           Stock Alerts
         </h2>
-
-        <div className={`dash-alert-card ${deadStockAlertCount > 0 ? "dash-alert-card--active" : ""}`}>
-          <div className="dash-alert-row" onClick={() => toggleAlert("deadStock")}>
-            <div className="dash-alert-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </div>
-            <div className="dash-alert-body">
-              <div className="dash-alert-name">Dead Stock</div>
-              <div className="dash-alert-desc">Items with no movement in {DEAD_STOCK_ALERT_THRESHOLD_DAYS}+ days</div>
-            </div>
-            <span className="dash-alert-count">{loadingData ? "…" : deadStockAlertCount}</span>
-            <svg className={`dash-alert-chevron ${openAlert === "deadStock" ? "dash-alert-chevron--open" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-          {openAlert === "deadStock" && (
-            <div className="dash-alert-detail">
-              {deadStockAlertCount === 0 ? (
-                <div className="dash-alert-detail-empty">No dead stock right now — nice.</div>
-              ) : (
-                <>
-                  {computeDeadStock(stock, movements, DEAD_STOCK_ALERT_THRESHOLD_DAYS).slice(0, 5).map((row, i) => (
-                    <div key={i} className="dash-alert-detail-row">
-                      <span className="dash-alert-detail-name">{row.productName} — {row.warehouseName}</span>
-                      <span className="dash-alert-detail-meta">
-                        {row.daysSince === null ? "Never moved" : `${row.daysSince}d ago`}
-                      </span>
-                    </div>
-                  ))}
-                  <div style={{ marginTop: 10 }}>
-                    <button
-                      className="stk-link-btn"
-                      onClick={() => {
-                        setDeadStockDays(DEAD_STOCK_ALERT_THRESHOLD_DAYS);
-                        setShowDeadStock(true);
-                      }}
-                    >
-                      View all in Dead Stock →
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
 
         <div className={`dash-alert-card ${repeatStockoutRows.length > 0 ? "dash-alert-card--active" : ""}`}>
           <div className="dash-alert-row" onClick={() => toggleAlert("repeatStockouts")}>
