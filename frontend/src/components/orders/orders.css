@@ -290,6 +290,21 @@
   color: var(--danger-text);
 }
 
+.ord-badge--pending {
+  background: #f1efe8;
+  color: #6b6558;
+}
+
+.ord-badge--confirmed {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.ord-badge--delivered {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
 .ord-banner {
   background: var(--info-bg);
   border: 1px solid var(--info-border);
@@ -644,4 +659,24 @@
   .ord-preview-placeholder {
     min-height: 260px;
   }
+}
+
+.ord-total-label {
+  text-align: right;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-top: 2px solid var(--border-color);
+  padding: 14px 16px !important;
+  background: var(--bg-surface-subtle);
+}
+
+.ord-total-value {
+  text-align: right;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--primary);
+  border-top: 2px solid var(--border-color);
+  padding: 14px 16px !important;
+  background: var(--bg-surface-subtle);
 }

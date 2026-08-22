@@ -1,10 +1,13 @@
-export type Category = "water" | "food" | "healthcare" | "electronics";
+export type ProductCategory = 'water' | 'food' | 'healthcare' | 'electronics' | 'others';
 
 export interface Product {
   id: string;
-  name: string;
-  category: Category;
+  productName: string;
+  category: ProductCategory;
   price: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type ProductFormData = Omit<Product, "id">;
+export type CreateProductPayload = Omit<Product, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateProductPayload = Partial<CreateProductPayload>;

@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { RequestWithUser } from './types';
 import { IS_PUBLIC_KEY } from './roles.decorator';
+import { UsersService } from '../modules/users/users.service';
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | null = null;
 
@@ -24,7 +25,10 @@ function getVerifier() {
 
 @Injectable()
 export class CognitoGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private usersService: UsersService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -48,6 +52,11 @@ export class CognitoGuard implements CanActivate {
 
     try {
       const payload = await getVerifier().verify(token);
+
+      const localUser = await this.usersService.findByCognitoSubOrNull(payload.sub);
+      if (!localUser) {
+        throw new UnauthorizedException('Account no longer exists');
+      }
 
       request.user = {
         sub: payload.sub,

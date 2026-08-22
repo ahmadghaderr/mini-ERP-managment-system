@@ -6,12 +6,15 @@ import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
 import { StockMovementReason } from '../../common/enums';
 import { CreateTransferDto } from './dto/create-transfer.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TransfersService {
   constructor(
     @InjectRepository(WarehouseTransfer)
     private readonly transferRepo: Repository<WarehouseTransfer>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -22,22 +25,30 @@ export class TransfersService {
     });
   }
 
+  private async resolveUserId(cognitoSub?: string): Promise<string | undefined> {
+    if (!cognitoSub) return undefined;
+    const user = await this.userRepo.findOne({ where: { cognitoSub } });
+    if (!user) {
+      throw new BadRequestException('No user found for the given identity');
+    }
+    return user.id;
+  }
+
   async create(data: CreateTransferDto): Promise<WarehouseTransfer> {
-    const { productId, fromWarehouseId, toWarehouseId, quantity, createdBy } =
-      data;
+    const { productId, fromWarehouseId, toWarehouseId, quantity, createdBy } = data;
 
     if (fromWarehouseId === toWarehouseId) {
       throw new BadRequestException('Source and destination must differ');
     }
 
+    const resolvedUserId = await this.resolveUserId(createdBy);
+
     return this.dataSource.transaction(async (manager) => {
-      // 1. find the source stock row
       const source = await manager.findOne(WarehouseProduct, {
         where: { warehouseId: fromWarehouseId, productId },
       });
 
-      const available =
-        (source?.quantityOnHand ?? 0) - (source?.quantityReserved ?? 0);
+      const available = (source?.quantityOnHand ?? 0) - (source?.quantityReserved ?? 0);
       if (!source || available < quantity) {
         throw new BadRequestException(
           `Not enough available stock in source warehouse (have ${available}, need ${quantity})`,
@@ -66,7 +77,7 @@ export class TransfersService {
         fromWarehouseId,
         toWarehouseId,
         quantity,
-        createdBy,
+        createdBy: resolvedUserId,
       });
       const savedTransfer = await manager.save(transfer);
 
@@ -76,7 +87,7 @@ export class TransfersService {
         quantityChange: -quantity,
         reason: StockMovementReason.TRANSFER_OUT,
         referenceId: savedTransfer.id,
-        createdBy,
+        createdBy: resolvedUserId,
       });
       const inMovement = manager.create(StockMovement, {
         warehouseId: toWarehouseId,
@@ -84,7 +95,7 @@ export class TransfersService {
         quantityChange: quantity,
         reason: StockMovementReason.TRANSFER_IN,
         referenceId: savedTransfer.id,
-        createdBy,
+        createdBy: resolvedUserId,
       });
       await manager.save([outMovement, inMovement]);
 

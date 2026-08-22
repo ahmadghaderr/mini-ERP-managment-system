@@ -1,8 +1,9 @@
 import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
-import { decodeToken } from '../../lib/cognito';
+import { useState, useEffect } from 'react';
+import { getCurrentUser, logout } from '../../services/auth-service';
 import { hasPermission } from '../permissions/permissions';
 import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
-import type { Role } from '../permissions/permissions';
+import type { CurrentUser } from '../../types/user';
 import './AppLayout.css';
 
 const NAV_ITEMS: NavItem[] = [
@@ -67,12 +68,7 @@ const NAV_ICONS: Record<string, JSX.Element> = {
 };
 
 function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
 function UserAvatar({ name, variant }: UserAvatarProps) {
@@ -92,29 +88,33 @@ function UserSummary({ name, role, variant }: UserSummaryProps) {
 }
 
 export default function AppLayout() {
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const idToken = localStorage.getItem('idToken');
-  if (!idToken) {
+  useEffect(() => {
+    getCurrentUser()
+      .then((data) => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
+  }
+
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  const payload = decodeToken(idToken);
-  const email = (payload.email as string) ?? 'unknown';
-  const groups = (payload['cognito:groups'] as string[]) ?? [];
-  const role = (groups[0] ?? 'staff') as Role;
-  const displayName = email.split('@')[0];
+  const role = user.role;
 
   function handleLogout() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('idToken');
+    logout();
     navigate('/login');
   }
 
-  const visibleNavItems = NAV_ITEMS.filter(
-    (item) => !item.requires || hasPermission(role, item.requires)
-  );
-
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.requires || hasPermission(role, item.requires));
   const allNavItems = hasPermission(role, 'users:manage')
     ? [...visibleNavItems, { to: '/users', label: 'Users' }]
     : visibleNavItems;
@@ -132,11 +132,7 @@ export default function AppLayout() {
         </div>
         <nav className="sidebar-nav">
           {allNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
-            >
+            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
               <span className="sidebar-link-icon">{NAV_ICONS[item.to]}</span>
               {item.label}
             </NavLink>
@@ -144,9 +140,9 @@ export default function AppLayout() {
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user-info">
-            <UserAvatar name={displayName} variant="sidebar" />
+            <UserAvatar name={user.userName} variant="sidebar" />
             <div className="sidebar-user-details">
-              <UserSummary name={displayName} role={role} variant="sidebar" />
+              <UserSummary name={user.userName} role={user.role} variant="sidebar" />
             </div>
           </div>
         </div>
@@ -154,15 +150,14 @@ export default function AppLayout() {
 
       <div className="app-main">
         <header className="topbar">
+          <div className="topbar-left"></div>
           <div className="topbar-right">
             <div className="topbar-user">
-              <UserAvatar name={displayName} variant="topbar" />
+              <UserAvatar name={user.userName} variant="topbar" />
               <div className="topbar-user-info">
-                <UserSummary name={displayName} role={role} variant="topbar" />
+                <UserSummary name={user.userName} role={user.role} variant="topbar" />
               </div>
-              <button className="topbar-logout" onClick={handleLogout}>
-                Logout
-              </button>
+              <button className="topbar-logout" onClick={handleLogout}>Logout</button>
             </div>
           </div>
         </header>

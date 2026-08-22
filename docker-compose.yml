@@ -1,16 +1,14 @@
-version: '3.8'
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: mini-ERP-db
+  db:
+    image: pgvector/pgvector:pg18
+    ports:
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: mini_ERP_system
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5433:5432"
     volumes:
-      - mini-ERP-db-data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
+
 volumes:
-  mini-ERP-db-data:
+  pgdata:

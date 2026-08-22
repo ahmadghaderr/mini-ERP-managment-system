@@ -23,12 +23,12 @@ export class CustomerOrder {
   @Column({ name: 'extracted_customer_name', length: 200, nullable: true })
   extractedCustomerName?: string;
 
-  @Column({ name: 'warehouse_id', type: 'uuid' })
-  warehouseId!: string;
+@Column({ name: 'warehouse_id', type: 'uuid', nullable: true })
+warehouseId?: string;
 
-  @ManyToOne(() => Warehouse, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'warehouse_id' })
-  warehouse!: Warehouse;
+@ManyToOne(() => Warehouse, { nullable: true, onDelete: 'RESTRICT' })
+@JoinColumn({ name: 'warehouse_id' })
+warehouse?: Warehouse;
 
   @Column({
     type: 'enum',

@@ -1,4 +1,4 @@
-import type { Role, Action } from '../permissions/permissions';
+import type { Role, Action } from '../components/permissions/permissions';
 
 export interface CurrentUser {
   id: string;

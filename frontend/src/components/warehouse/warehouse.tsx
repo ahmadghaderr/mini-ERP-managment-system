@@ -1,48 +1,136 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { hasPermission } from "../permissions/permissions";
+import { decodeToken } from "../../lib/cognito";
 import type { Role } from "../permissions/permissions";
-import type { Warehouse } from "../../types/warehouse";
+import type { Warehouse, CreateWarehousePayload, WarehouseModalProps } from "../../types/warehouse";
+import { fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from "../../services/warehouse-service";
 import "./warehouse.css";
 
-const initialWarehouses: Warehouse[] = [
-  {
-    id: "wh-1",
-    name: "Main Warehouse",
-    location: "Tripoli, LB",
-    createdAt: "2026-07-01",
-  },
-  {
-    id: "wh-2",
-    name: "North Depot",
-    location: "Beirut, LB",
-    createdAt: "2026-07-10",
-  },
-  {
-    id: "wh-3",
-    name: "South Storage",
-    location: "Saida, LB",
-    createdAt: "2026-07-22",
-  },
-];
+function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
+  const [formData, setFormData] = useState<CreateWarehousePayload>({
+    warehouseName: warehouse?.warehouseName ?? "",
+    warehouseLocation: warehouse?.warehouseLocation ?? "",
+  });
+
+  function handleSubmit() {
+    if (!formData.warehouseName.trim() || !formData.warehouseLocation.trim()) {
+      alert("Please fill in all fields");
+      return;
+    }
+    onSave(formData);
+  }
+
+  return (
+    <div className="wh-modal-overlay" onClick={onClose}>
+      <div className="wh-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="wh-modal-header">
+          <div className="wh-modal-title">
+            {warehouse ? "Edit Warehouse" : "Add Warehouse"}
+          </div>
+          <button className="wh-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="wh-modal-body">
+          <div className="field">
+            <label>Warehouse Name</label>
+            <input
+              className="input"
+              value={formData.warehouseName}
+              onChange={(e) => setFormData({ ...formData, warehouseName: e.target.value })}
+              placeholder="e.g. Main Warehouse"
+            />
+          </div>
+          <div className="field">
+            <label>Location</label>
+            <input
+              className="input"
+              value={formData.warehouseLocation}
+              onChange={(e) => setFormData({ ...formData, warehouseLocation: e.target.value })}
+              placeholder="e.g. Tripoli, LB"
+            />
+          </div>
+        </div>
+
+        <div className="wh-modal-footer">
+          <button className="btn btn--ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn--primary" onClick={handleSubmit}>
+            {warehouse ? "Save Changes" : "Create Warehouse"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Warehouses() {
-  const [warehouses, setWarehouses] = useState(initialWarehouses);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
-  const userJson = localStorage.getItem("currentUser");
-  const role = (userJson ? JSON.parse(userJson).role : "staff") as Role;
+  const idToken = localStorage.getItem("idToken");
+  const payload = idToken ? decodeToken(idToken) : null;
+  const groups = (payload?.["cognito:groups"] as string[]) ?? [];
+  const role = (groups[0] ?? "staff") as Role;
   const canManage = hasPermission(role, "warehouses:manage");
+
+  useEffect(() => {
+    loadWarehouses();
+  }, []);
+
+  async function loadWarehouses() {
+    setLoading(true);
+    try {
+      const data = await fetchWarehouses();
+      setWarehouses(data);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const rows = warehouses.filter(
     (w) =>
-      w.name.toLowerCase().includes(search.toLowerCase()) ||
-      w.location.toLowerCase().includes(search.toLowerCase()),
+      w.warehouseName.toLowerCase().includes(search.toLowerCase()) ||
+      w.warehouseLocation.toLowerCase().includes(search.toLowerCase()),
   );
 
-  function handleDelete(id: string) {
-    if (!confirm("Delete this warehouse?")) return;
+  function handleAdd() {
+    setEditingWarehouse(null);
+    setShowModal(true);
+  }
 
-    setWarehouses((prev) => prev.filter((w) => w.id !== id));
+  function handleEdit(w: Warehouse) {
+    setEditingWarehouse(w);
+    setShowModal(true);
+  }
+
+  async function handleSave(data: CreateWarehousePayload) {
+    if (editingWarehouse) {
+      await updateWarehouse(editingWarehouse.id, data);
+    } else {
+      await createWarehouse(data);
+    }
+    setShowModal(false);
+    setEditingWarehouse(null);
+    loadWarehouses();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this warehouse?")) return;
+    await deleteWarehouse(id);
+    loadWarehouses();
+  }
+
+  if (loading) {
+    return <div style={{ padding: 24 }}>Loading...</div>;
   }
 
   return (
@@ -66,7 +154,7 @@ export default function Warehouses() {
         </div>
 
         {canManage && (
-          <button className="btn btn--primary">
+          <button className="btn btn--primary" onClick={handleAdd}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -89,14 +177,16 @@ export default function Warehouses() {
           <tbody>
             {rows.map((w) => (
               <tr key={w.id}>
-                <td className="tbl-name">{w.name}</td>
+                <td className="tbl-name">{w.warehouseName}</td>
                 <td>
-                  <span className="loc-badge">{w.location}</span>
+                  <span className="loc-badge">{w.warehouseLocation}</span>
                 </td>
-                <td className="tbl-muted">{w.createdAt}</td>
+                <td className="tbl-muted">{new Date(w.createdAt).toLocaleDateString()}</td>
                 {canManage && (
                   <td className="tbl-actions">
-                    <button className="link-btn">Edit</button>
+                    <button className="link-btn" onClick={() => handleEdit(w)}>
+                      Edit
+                    </button>
                     <button
                       className="link-btn link-btn--danger"
                       onClick={() => handleDelete(w.id)}
@@ -110,6 +200,17 @@ export default function Warehouses() {
           </tbody>
         </table>
       </div>
+
+      {showModal && (
+        <WarehouseModal
+          warehouse={editingWarehouse}
+          onSave={handleSave}
+          onClose={() => {
+            setShowModal(false);
+            setEditingWarehouse(null);
+          }}
+        />
+      )}
     </div>
   );
 }

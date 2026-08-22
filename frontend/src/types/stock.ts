@@ -1,64 +1,69 @@
-export type TransferStatus =
-  | "pending"
-  | "approved"
-  | "dispatched"
-  | "received"
-  | "cancelled";
+export type StockMovementReason =
+  | "invoice_delivered"
+  | "order_delivered"
+  | "transfer_out"
+  | "transfer_in"
+  | "adjustment";
 
-export interface Warehouse {
+export interface WarehouseStock {
   id: string;
-  name: string;
-  code: string;
-}
-
-export interface TransferItem {
+  warehouseId: string;
   productId: string;
-  productName: string;
-  quantity: number;
+  quantityOnHand: number;
+  quantityReserved: number;
+  updatedAt: string;
+  warehouse?: { id: string; warehouseName: string };
+  product?: { id: string; productName: string };
 }
 
-export interface TransferRequest {
+export interface StockMovement {
   id: string;
-  sourceWarehouseId: string;
-  sourceWarehouseName: string;
-  destinationWarehouseId: string;
-  destinationWarehouseName: string;
-  items: TransferItem[];
-  status: TransferStatus;
-  requestedBy: string;
-  requestedAt: string;
-  dispatchedAt?: string;
-  receivedAt?: string;
-  notes?: string;
+  warehouseId: string;
+  productId: string;
+  quantityChange: number;
+  reason: StockMovementReason;
+  referenceId: string | null;
+  createdAt: string;
+  createdById: string | null;
+  warehouse?: { id: string; warehouseName: string };
+  product?: { id: string; productName: string };
 }
 
-export interface LedgerEntry {
+export interface AdjustStockPayload {
+  warehouseId: string;
+  productId: string;
+  quantityChange: number;
+  createdBy?: string;
+}
+
+export interface WarehouseTransfer {
   id: string;
-  transferId?: string;
-  timestamp: string;
-  productId?: string;
-  productName: string;
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
   quantity: number;
-  fromWarehouse?: string;
-  toWarehouse?: string;
-  performedBy: string;
-  type: "TRANSFER_IN" | "TRANSFER_OUT" | "ADJUSTMENT_IN" | "ADJUSTMENT_OUT";
-  reason?: string;
+  createdAt: string;
+  createdById: string | null;
+  product?: { id: string; productName: string };
+  fromWarehouse?: { id: string; warehouseName: string };
+  toWarehouse?: { id: string; warehouseName: string };
 }
 
-export type NewTransferPayload = Omit<
-  TransferRequest,
-  "id" | "status" | "requestedAt"
->;
-
-export interface OpeningStockRow {
-  productName: string;
-  warehouseName: string;
+export interface CreateTransferPayload {
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
   quantity: number;
+  createdBy?: string;
 }
 
-export interface StockLevel {
+export interface StockRow {
   productName: string;
-  warehouseName: string;
-  quantity: number;
+  quantityOnHand: number;
+}
+
+export interface StockTableProps {
+  rows: StockRow[];
+  emptyMessage: string;
+  emptyPadding: number;
 }
