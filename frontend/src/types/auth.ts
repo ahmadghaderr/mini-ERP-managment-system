@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Role } from '../components/permissions/permissions';
 
 export interface AuthFieldProps {
   label: string;
@@ -13,4 +14,10 @@ export interface AuthCardProps {
   subtitle: string;
   error?: string;
   children: ReactNode;
+}
+
+export interface CurrentUser {
+  userName: string;
+  userEmail: string;
+  role: Role;
 }

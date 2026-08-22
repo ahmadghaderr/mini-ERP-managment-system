@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { TransfersService } from './transfers.service';
 import { CreateTransferDto } from './dto/create-transfer.dto';
+import { Roles } from '../../auth/roles.decorator';
 
 @Controller('transfers')
+@Roles('manager')
 export class TransfersController {
   constructor(private readonly transfersService: TransfersService) {}
 

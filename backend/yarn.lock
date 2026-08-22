@@ -60,8 +60,11 @@
     ora "5.4.1"
     rxjs "7.8.1"
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> d7a57b93018b43205dc49a85c5c9e24be977b072
 "@aws-sdk/checksums@^3.1000.28":
   version "3.1000.28"
   resolved "https://registry.yarnpkg.com/@aws-sdk/checksums/-/checksums-3.1000.28.tgz#2a057727dc4b575dd84fe756d437caf4331bc974"
@@ -73,6 +76,7 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+<<<<<<< HEAD
 "@aws-sdk/client-bedrock-agentcore@^3.1116.0":
   version "3.1116.0"
   resolved "https://registry.npmjs.org/@aws-sdk/client-bedrock-agentcore/-/client-bedrock-agentcore-3.1116.0.tgz#eac6a766825bf25fc168aea7f31282cd4708b1c9"
@@ -88,6 +92,8 @@
     tslib "^2.6.2"
 
 >>>>>>> Stashed changes
+=======
+>>>>>>> d7a57b93018b43205dc49a85c5c9e24be977b072
 "@aws-sdk/client-cognito-identity-provider@^3.1111.0":
   version "3.1111.0"
   resolved "https://registry.npmjs.org/@aws-sdk/client-cognito-identity-provider/-/client-cognito-identity-provider-3.1111.0.tgz#42160b845702a134ea89db403900edfa30da3217"
@@ -102,10 +108,41 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+"@aws-sdk/client-s3@^3.1114.0":
+  version "3.1114.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1114.0.tgz#887da16565a3db735aa03fe71ecbcc016daae5e6"
+  integrity sha512-ZeAgOtB+CXFaWXph98U7a/XrBlVx1lQ2rCJRWLxLmAaQ9k5lht6DWfwnEcVjdzduK/ySao1tCjq0fBAScGqjAg==
+  dependencies:
+    "@aws-sdk/checksums" "^3.1000.28"
+    "@aws-sdk/core" "^3.977.8"
+    "@aws-sdk/credential-provider-node" "^3.972.80"
+    "@aws-sdk/middleware-sdk-s3" "^3.972.74"
+    "@aws-sdk/signature-v4-multi-region" "^3.996.45"
+    "@aws-sdk/types" "^3.974.4"
+    "@smithy/core" "^3.31.1"
+    "@smithy/fetch-http-handler" "^5.6.13"
+    "@smithy/node-http-handler" "^4.9.13"
+    "@smithy/types" "^4.16.1"
+    tslib "^2.6.2"
+
 "@aws-sdk/client-ses@^3.1111.0":
   version "3.1111.0"
   resolved "https://registry.npmjs.org/@aws-sdk/client-ses/-/client-ses-3.1111.0.tgz#4ad7d987e53421c644cd5624da6dbf5d7637b25d"
   integrity sha512-gd8yPGBB8z8p2BaZN3PnpRCIvqZsTNyJVviP6ateih60uyhdKMaPIwa0XGiYdR/+ogRkn4GDdQ93plXdbDbEEA==
+  dependencies:
+    "@aws-sdk/core" "^3.977.8"
+    "@aws-sdk/credential-provider-node" "^3.972.80"
+    "@aws-sdk/types" "^3.974.4"
+    "@smithy/core" "^3.31.1"
+    "@smithy/fetch-http-handler" "^5.6.13"
+    "@smithy/node-http-handler" "^4.9.13"
+    "@smithy/types" "^4.16.1"
+    tslib "^2.6.2"
+
+"@aws-sdk/client-textract@^3.1114.0":
+  version "3.1114.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-textract/-/client-textract-3.1114.0.tgz#87e5a379447010ddbb07288bc6f234d278936d4e"
+  integrity sha512-0YktP0mlP+u7UtM+VZ6jmNer7gV2FMtOl7h8Ai4MyajWsRcSNAJOJgIPaByA+980uP9Tkm5Dh/IhXedOnPn90A==
   dependencies:
     "@aws-sdk/core" "^3.977.8"
     "@aws-sdk/credential-provider-node" "^3.972.80"
@@ -348,6 +385,7 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 "@aws-sdk/credential-provider-web-identity@^3.972.76":
@@ -362,6 +400,8 @@
     "@smithy/types" "^4.17.2"
     tslib "^2.6.2"
 
+=======
+>>>>>>> d7a57b93018b43205dc49a85c5c9e24be977b072
 "@aws-sdk/middleware-sdk-s3@^3.972.74":
   version "3.972.74"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.972.74.tgz#203bb14775dcdc8f2b0c4984125da09708d8496d"
@@ -374,7 +414,10 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> d7a57b93018b43205dc49a85c5c9e24be977b072
 "@aws-sdk/nested-clients@^3.997.43":
   version "3.997.43"
   resolved "https://registry.npmjs.org/@aws-sdk/nested-clients/-/nested-clients-3.997.43.tgz#6fa60e5fad1e97267b2773f0750d37511f9d698a"
@@ -389,6 +432,7 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 "@aws-sdk/nested-clients@^3.997.44":
@@ -405,6 +449,8 @@
     "@smithy/types" "^4.17.2"
     tslib "^2.6.2"
 
+=======
+>>>>>>> d7a57b93018b43205dc49a85c5c9e24be977b072
 "@aws-sdk/s3-request-presigner@^3.1114.0":
   version "3.1114.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.1114.0.tgz#56d7b6e34ef6fd487c41e53eb8cb182f443643c9"
@@ -417,7 +463,10 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> d7a57b93018b43205dc49a85c5c9e24be977b072
 "@aws-sdk/signature-v4-multi-region@^3.996.45":
   version "3.996.45"
   resolved "https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.996.45.tgz#7d8d1d2c769327b9b5c624ee577ea1248826af7a"
@@ -1446,6 +1495,13 @@
     path-to-regexp "8.4.2"
     tslib "2.8.1"
 
+"@nestjs/schedule@^6.1.3":
+  version "6.1.3"
+  resolved "https://registry.yarnpkg.com/@nestjs/schedule/-/schedule-6.1.3.tgz#24a1decf216e5881bed9d8e751573ac450c7d04b"
+  integrity sha512-RflMFOpR16Dwd1jAUbeB4mfGTCh65fvEdL4mSjQPJChpkRGRjIXjb+6YQcK2faQrVT60c9DmLmoVR7/ONCtuYQ==
+  dependencies:
+    cron "4.4.0"
+
 "@nestjs/schematics@^11.0.0", "@nestjs/schematics@^11.0.1":
   version "11.1.0"
   resolved "https://registry.npmjs.org/@nestjs/schematics/-/schematics-11.1.0.tgz"
@@ -1714,7 +1770,7 @@
     "@types/range-parser" "*"
     "@types/send" "*"
 
-"@types/express@^5.0.0":
+"@types/express@*", "@types/express@^5.0.0":
   version "5.0.6"
   resolved "https://registry.npmjs.org/@types/express/-/express-5.0.6.tgz"
   integrity sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==
@@ -1760,10 +1816,22 @@
   resolved "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz"
   integrity sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==
 
+"@types/luxon@~3.7.0":
+  version "3.7.4"
+  resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-3.7.4.tgz#31da310d06b55214ea0e918b2d75704ab0df581b"
+  integrity sha512-V536ZAd6ZJztrrBlLcDFaaZrXNAL2E5uGmssWf/dpSiLkmkLScXUYhUBnWPmtW+cIqnNHzf6//TCMpIc9SCRRQ==
+
 "@types/methods@^1.1.4":
   version "1.1.4"
   resolved "https://registry.npmjs.org/@types/methods/-/methods-1.1.4.tgz"
   integrity sha512-ymXWVrDiCxTBE3+RIrrP533E70eA+9qu7zdWoHuOmGujkYtzf4HQF96b8nwHLqhuf4ykX61IGRIB38CC6/sImQ==
+
+"@types/multer@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@types/multer/-/multer-2.2.0.tgz#f987c770cbe309d1b5e60c251851d6550f121f61"
+  integrity sha512-3U1troeqGV8Ntp7Q3klwf4zr23VEoqYVocYXaswm9+8z3O9UHDYAqLxjJ/h550iRADTjKdOdhhasXw6gD6kYtg==
+  dependencies:
+    "@types/express" "*"
 
 "@types/node@*", "@types/node@^24.0.0":
   version "24.13.3"
@@ -2841,6 +2909,14 @@ create-require@^1.1.0:
   version "1.1.1"
   resolved "https://registry.npmjs.org/create-require/-/create-require-1.1.1.tgz"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
+
+cron@4.4.0:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/cron/-/cron-4.4.0.tgz#1488444a23ea7134e2b7686c17711abdffcebba8"
+  integrity sha512-fkdfq+b+AHI4cKdhZlppHveI/mgz2qpiYxcm+t5E5TsxX7QrLS1VE0+7GENEk9z0EeGPcpSciGv6ez24duWhwQ==
+  dependencies:
+    "@types/luxon" "~3.7.0"
+    luxon "~3.7.0"
 
 cross-spawn@^7.0.3, cross-spawn@^7.0.6:
   version "7.0.6"
@@ -4336,6 +4412,11 @@ lru-cache@^5.1.1:
   integrity sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==
   dependencies:
     yallist "^3.0.2"
+
+luxon@~3.7.0:
+  version "3.7.2"
+  resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.7.2.tgz#d697e48f478553cca187a0f8436aff468e3ba0ba"
+  integrity sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==
 
 magic-string@0.30.17:
   version "0.30.17"

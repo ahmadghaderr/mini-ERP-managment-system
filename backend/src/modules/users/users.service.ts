@@ -1,15 +1,13 @@
-import {
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
   AdminAddUserToGroupCommand,
+  AdminRemoveUserFromGroupCommand,
   AdminDeleteUserCommand,
+  AdminUserGlobalSignOutCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -44,6 +42,11 @@ export class UsersService {
     return user;
   }
 
+  async findByCognitoSubOrNull(cognitoSub: string): Promise<User | null> {
+
+    return this.userRepo.findOne({ where: { cognitoSub } });
+  }
+
   async create(data: CreateUserDto): Promise<User> {
     let cognitoSub: string;
 
@@ -64,9 +67,7 @@ export class UsersService {
         (attr) => attr.Name === 'sub',
       );
       if (!subAttribute?.Value) {
-        throw new InternalServerErrorException(
-          'Cognito did not return a user sub',
-        );
+        throw new InternalServerErrorException('Cognito did not return a user sub');
       }
       cognitoSub = subAttribute.Value;
 
@@ -97,6 +98,14 @@ export class UsersService {
 
     if (data.role && data.role !== user.role) {
       await cognitoClient.send(
+        new AdminRemoveUserFromGroupCommand({
+          UserPoolId: process.env.COGNITO_USER_POOL_ID,
+          Username: user.userEmail,
+          GroupName: user.role,
+        }),
+      );
+
+      await cognitoClient.send(
         new AdminAddUserToGroupCommand({
           UserPoolId: process.env.COGNITO_USER_POOL_ID,
           Username: user.userEmail,
@@ -111,6 +120,13 @@ export class UsersService {
 
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
+
+    await cognitoClient.send(
+      new AdminUserGlobalSignOutCommand({
+        UserPoolId: process.env.COGNITO_USER_POOL_ID,
+        Username: user.userEmail,
+      }),
+    );
 
     await cognitoClient.send(
       new AdminDeleteUserCommand({

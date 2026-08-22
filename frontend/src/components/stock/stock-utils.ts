@@ -1,4 +1,28 @@
-import type { LedgerEntry, OpeningStockRow, StockLevel } from "../../types/stock";
+export interface LedgerEntry {
+  id: string;
+  transferId?: string;
+  timestamp: string;
+  productId?: string;
+  productName: string;
+  quantity: number;
+  fromWarehouse?: string;
+  toWarehouse?: string;
+  performedBy: string;
+  type: "TRANSFER_IN" | "TRANSFER_OUT" | "ADJUSTMENT_IN" | "ADJUSTMENT_OUT";
+  reason?: string;
+}
+
+export interface OpeningStockRow {
+  productName: string;
+  warehouseName: string;
+  quantity: number;
+}
+
+export interface StockLevel {
+  productName: string;
+  warehouseName: string;
+  quantity: number;
+}
 
 export const openingStock: OpeningStockRow[] = [
   { productName: "Bottled Water 500ml", warehouseName: "Main Warehouse", quantity: 800 },
@@ -11,6 +35,31 @@ export const openingStock: OpeningStockRow[] = [
   { productName: "water", warehouseName: "South Hub", quantity: 100 },
   { productName: "Canned Beans", warehouseName: "South Hub", quantity: 60 },
   { productName: "Rice 1kg", warehouseName: "South Hub", quantity: 90 },
+];
+
+export const mockLedgerEntries: LedgerEntry[] = [
+  {
+    id: "led-01",
+    transferId: "tr-101",
+    timestamp: "2026-08-10 10:00",
+    productName: "Bottled Water 500ml",
+    quantity: 100,
+    fromWarehouse: "Main Warehouse",
+    toWarehouse: "North Branch",
+    performedBy: "Ahmad Ghader",
+    type: "TRANSFER_OUT",
+  },
+  {
+    id: "led-02",
+    transferId: "tr-102",
+    timestamp: "2026-08-11 14:30",
+    productName: "Canned Beans",
+    quantity: 50,
+    fromWarehouse: "Main Warehouse",
+    toWarehouse: "South Hub",
+    performedBy: "Ahmad Ghader",
+    type: "TRANSFER_IN",
+  },
 ];
 
 export function rowKey(productName: string, warehouseName: string) {

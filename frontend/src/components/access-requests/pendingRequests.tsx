@@ -3,7 +3,7 @@ import {
   fetchAccessRequests,
   approveAccessRequest,
   rejectAccessRequest,
-} from "../../services/accessRequests";
+} from "../../services/accessRequests-service";
 import type { AccessRequest } from "../../types/accessRequests";
 import "./access-requests.css";
 

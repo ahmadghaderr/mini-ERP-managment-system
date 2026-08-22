@@ -61,9 +61,6 @@ export async function completeNewPassword(
   };
 }
 
-// Decodes a JWT's payload without verifying the signature.
-// Fine for reading our own token's claims client-side — the token itself
-// was already verified by Cognito when it was issued.
 export function decodeToken(token: string): Record<string, unknown> {
   const payload = token.split('.')[1];
   const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));

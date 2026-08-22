@@ -6,6 +6,7 @@ import { SupplierInvoicesService } from './supplier-invoices.service';
 import { SupplierInvoicesController } from './supplier-invoices.controller';
 import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { StockMovement } from '../stock/entities/stock-movement.entity';
       SupplierInvoiceItem,
       WarehouseProduct,
       StockMovement,
+      User,
     ]),
   ],
   controllers: [SupplierInvoicesController],
