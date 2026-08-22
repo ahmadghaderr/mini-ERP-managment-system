@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -14,6 +15,10 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { TextractClient, AnalyzeExpenseCommand } from '@aws-sdk/client-textract';
+import {
+  BedrockAgentCoreClient,
+  InvokeAgentRuntimeCommand,
+} from '@aws-sdk/client-bedrock-agentcore';
 import { randomUUID } from 'crypto';
 import { SupplierInvoice } from './entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from './entities/supplier-invoice-item.entity';
@@ -25,12 +30,21 @@ import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 
 const MIN_CONFIDENCE = 85;
 const PRESIGNED_URL_TTL_SECONDS = 3600;
+const EVENT_AGENT_RUNTIME_ARN =
+  'arn:aws:bedrock-agentcore:eu-west-1:767828722131:runtime/EventAgent_EventAgent-vzv80WFMto';
+
+export interface CalendarEventResult {
+  success: boolean;
+  message: string;
+}
 
 @Injectable()
 export class SupplierInvoicesService {
   private readonly s3: S3Client;
   private readonly textract: TextractClient;
+  private readonly agentCore: BedrockAgentCoreClient;
   private readonly S3_BUCKET: string;
+  private readonly logger = new Logger(SupplierInvoicesService.name);
 
   constructor(
     @InjectRepository(SupplierInvoice)
@@ -46,6 +60,7 @@ export class SupplierInvoicesService {
     this.S3_BUCKET = this.configService.getOrThrow<string>('S3_INVOICE_BUCKET');
     this.s3 = new S3Client({ region });
     this.textract = new TextractClient({ region });
+    this.agentCore = new BedrockAgentCoreClient({ region });
   }
 
   private async toPresignedUrl(s3Uri: string): Promise<string> {
@@ -77,6 +92,94 @@ export class SupplierInvoicesService {
       throw new BadRequestException('No user found for reviewer identity');
     }
     return user.id;
+  }
+
+  private buildEventAgentPrompt(invoice: SupplierInvoice): string {
+    const itemsList = invoice.items
+      .map(
+        (it) =>
+          `- ${it.extractedProductName}: qty ${it.quantity}${
+            it.unitPrice != null ? ` @ $${Number(it.unitPrice).toFixed(2)}` : ''
+          }`,
+      )
+      .join('\n');
+
+    const deliveryDate = invoice.extractedDeliveryDate
+      ? new Date(invoice.extractedDeliveryDate).toISOString().split('T')[0]
+      : 'unknown';
+
+    return [
+      `Create a Google Calendar event for an upcoming supplier delivery.`,
+      `Supplier: ${invoice.extractedSupplierName ?? 'Unknown supplier'}`,
+      `Delivery date: ${deliveryDate}`,
+      `Warehouse: ${invoice.warehouse?.warehouseName ?? 'Unknown warehouse'}`,
+      `Items ordered:`,
+      itemsList || '(no items)',
+      ``,
+      `Please title the event "Delivery from ${invoice.extractedSupplierName ?? 'supplier'}" and schedule it on ${deliveryDate}.`,
+    ].join('\n');
+  }
+
+  private parseAgentStreamResponse(raw: string): string {
+    const lines = raw.split('\n').filter((l) => l.trim().startsWith('data:'));
+    let text = '';
+    for (const line of lines) {
+      const jsonStr = line.replace(/^data:\s*/, '').trim();
+      if (!jsonStr) continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const delta = parsed?.event?.contentBlockDelta?.delta?.text;
+        if (typeof delta === 'string') {
+          text += delta;
+        }
+      } catch {
+        // skip malformed/partial chunks
+      }
+    }
+    return text.trim();
+  }
+
+  private async invokeEventAgent(
+    invoice: SupplierInvoice,
+  ): Promise<CalendarEventResult> {
+    try {
+      const prompt = this.buildEventAgentPrompt(invoice);
+      const payload = JSON.stringify({ prompt });
+
+      const command = new InvokeAgentRuntimeCommand({
+        agentRuntimeArn: EVENT_AGENT_RUNTIME_ARN,
+        runtimeSessionId: randomUUID() + randomUUID(),
+        contentType: 'application/json',
+        accept: 'application/json',
+        payload: new TextEncoder().encode(payload),
+      });
+
+      const response = await this.agentCore.send(command);
+
+      let rawText = '';
+      if (response.response) {
+        const responseBytes = await response.response.transformToByteArray();
+        rawText = new TextDecoder().decode(responseBytes);
+      }
+
+      const parsedText = this.parseAgentStreamResponse(rawText);
+      const responseText = parsedText || 'Calendar event created.';
+
+      this.logger.log(
+        `EventAgent responded for invoice ${invoice.id}: ${responseText}`,
+      );
+      return { success: true, message: responseText };
+    } catch (err) {
+      this.logger.error(
+        `EventAgent invocation failed for invoice ${invoice.id}`,
+        err,
+      );
+      return {
+        success: false,
+        message:
+          err instanceof Error ? err.message : 'Calendar event creation failed.',
+      };
+    }
   }
 
   async findAll(): Promise<SupplierInvoice[]> {
@@ -236,7 +339,10 @@ export class SupplierInvoicesService {
     return this.itemRepo.save(item);
   }
 
-  async confirm(id: string, reviewerCognitoSub?: string): Promise<SupplierInvoice> {
+  async confirm(
+    id: string,
+    reviewerCognitoSub?: string,
+  ): Promise<{ invoice: SupplierInvoice; calendarEvent: CalendarEventResult }> {
     const invoice = await this.findOne(id);
 
     if (
@@ -258,7 +364,11 @@ export class SupplierInvoicesService {
     invoice.status = SupplierInvoiceStatus.CONFIRMED;
     invoice.confirmedAt = new Date();
     invoice.reviewedBy = await this.resolveReviewerId(reviewerCognitoSub);
-    return this.invoiceRepo.save(invoice);
+    const saved = await this.invoiceRepo.save(invoice);
+
+    const calendarEvent = await this.invokeEventAgent(saved);
+
+    return { invoice: saved, calendarEvent };
   }
 
   async reject(id: string, reviewerCognitoSub?: string): Promise<SupplierInvoice> {

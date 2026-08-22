@@ -55,6 +55,7 @@ export default function Review() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [autoMatching, setAutoMatching] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const idToken = localStorage.getItem("idToken");
   const tokenPayload = idToken ? decodeToken(idToken) : null;
@@ -142,14 +143,25 @@ export default function Review() {
   async function handleConfirm() {
     if (!invoice) return;
     setSaving(true);
+    setConfirming(true);
     setActionError(null);
     try {
-      await confirmSupplierInvoice(invoice.id);
+      const result = await confirmSupplierInvoice(invoice.id);
+      if (result.calendarEvent.success) {
+        alert(
+          `Invoice confirmed. Calendar event created.\n\n${result.calendarEvent.message}`,
+        );
+      } else {
+        alert(
+          `Invoice confirmed, but the calendar event could not be created.\n\n${result.calendarEvent.message}`,
+        );
+      }
       navigate("/invoices");
     } catch (err) {
       setActionError(getApiErrorMessage(err));
     } finally {
       setSaving(false);
+      setConfirming(false);
     }
   }
 
@@ -290,7 +302,9 @@ export default function Review() {
           </svg>
           {autoMatching
             ? "Auto-matching items to products..."
-            : "Review matched products, adjust if needed, then confirm. Confirming accepts the extracted data only — stock is added later, when the shipment arrives (delivered)."}
+            : confirming
+              ? "Confirming and creating calendar event — this may take a moment..."
+              : "Review matched products, adjust if needed, then confirm. Confirming accepts the extracted data only — stock is added later, when the shipment arrives (delivered)."}
         </div>
       )}
 
@@ -432,7 +446,7 @@ export default function Review() {
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            Confirm
+            {confirming ? "Confirming..." : "Confirm"}
           </button>
           <button
             className="inv-btn inv-btn--danger"

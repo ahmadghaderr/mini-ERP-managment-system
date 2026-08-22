@@ -1,14 +1,23 @@
 import axios from 'axios';
-import type { SupplierInvoice, CreateSupplierInvoicePayload } from '../types/supplierInvoice';
+import type { SupplierInvoice, SupplierInvoiceItem } from '../types/supplierInvoice';
 
 const API_BASE = 'http://localhost:3001';
 
 function authHeaders() {
   const token = localStorage.getItem('accessToken');
   return {
-    'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+}
+
+export interface CalendarEventResult {
+  success: boolean;
+  message: string;
+}
+
+export interface ConfirmInvoiceResponse {
+  invoice: SupplierInvoice;
+  calendarEvent: CalendarEventResult;
 }
 
 export async function fetchSupplierInvoices(): Promise<SupplierInvoice[]> {
@@ -25,30 +34,18 @@ export async function fetchSupplierInvoice(id: string): Promise<SupplierInvoice>
   return response.data;
 }
 
-export async function createSupplierInvoice(data: CreateSupplierInvoicePayload): Promise<SupplierInvoice> {
-  const response = await axios.post(`${API_BASE}/supplier-invoices`, data, {
-    headers: authHeaders(),
-  });
-  return response.data;
-}
-
-export interface UploadSupplierInvoiceResult {
-  invoice: SupplierInvoice;
-  lowConfidenceFields: string[];
-}
-
 export async function uploadAndExtractSupplierInvoice(
   file: File,
   warehouseId: string,
-): Promise<UploadSupplierInvoiceResult> {
+): Promise<{ invoice: SupplierInvoice; lowConfidenceFields: string[] }> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('warehouseId', warehouseId);
 
-  const token = localStorage.getItem('accessToken');
   const response = await axios.post(`${API_BASE}/supplier-invoices/upload`, formData, {
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...authHeaders(),
+      'Content-Type': 'multipart/form-data',
     },
   });
   return response.data;
@@ -58,15 +55,16 @@ export async function matchSupplierInvoiceItem(
   invoiceId: string,
   itemId: string,
   matchedProductId: string,
-): Promise<void> {
-  await axios.patch(
+): Promise<SupplierInvoiceItem> {
+  const response = await axios.patch(
     `${API_BASE}/supplier-invoices/${invoiceId}/items/${itemId}/match`,
     { matchedProductId },
-    { headers: authHeaders() },
+    { headers: { ...authHeaders(), 'Content-Type': 'application/json' } },
   );
+  return response.data;
 }
 
-export async function confirmSupplierInvoice(id: string): Promise<SupplierInvoice> {
+export async function confirmSupplierInvoice(id: string): Promise<ConfirmInvoiceResponse> {
   const response = await axios.patch(
     `${API_BASE}/supplier-invoices/${id}/confirm`,
     {},

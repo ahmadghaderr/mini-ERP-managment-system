@@ -4,6 +4,7 @@ import "./invoices.css";
 import type { Warehouse } from "../../types/warehouse";
 import { fetchWarehouses } from "../../services/warehouse-service";
 import { uploadAndExtractSupplierInvoice } from "../../services/invoice-service";
+import { getApiErrorMessage } from "../../lib/apiError";
 
 type ExtractionStep = "idle" | "extracting";
 
@@ -79,7 +80,7 @@ export default function Upload() {
       }
       navigate(`/invoices/review/${invoice.id}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not extract invoice data.");
+      alert(getApiErrorMessage(err));
       setStep("idle");
     }
   }
