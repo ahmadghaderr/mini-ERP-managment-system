@@ -30,8 +30,6 @@ import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 
 const MIN_CONFIDENCE = 85;
 const PRESIGNED_URL_TTL_SECONDS = 3600;
-const EVENT_AGENT_RUNTIME_ARN =
-  'arn:aws:bedrock-agentcore:eu-west-1:767828722131:runtime/EventAgent_EventAgent-vzv80WFMto';
 
 export interface CalendarEventResult {
   success: boolean;
@@ -44,6 +42,7 @@ export class SupplierInvoicesService {
   private readonly textract: TextractClient;
   private readonly agentCore: BedrockAgentCoreClient;
   private readonly S3_BUCKET: string;
+  private readonly eventAgentRuntimeArn: string;
   private readonly logger = new Logger(SupplierInvoicesService.name);
 
   constructor(
@@ -58,6 +57,9 @@ export class SupplierInvoicesService {
   ) {
     const region = this.configService.getOrThrow<string>('COGNITO_REGION');
     this.S3_BUCKET = this.configService.getOrThrow<string>('S3_INVOICE_BUCKET');
+    this.eventAgentRuntimeArn = this.configService.getOrThrow<string>(
+      'EVENT_AGENT_RUNTIME_ARN',
+    );
     this.s3 = new S3Client({ region });
     this.textract = new TextractClient({ region });
     this.agentCore = new BedrockAgentCoreClient({ region });
@@ -147,7 +149,7 @@ export class SupplierInvoicesService {
       const payload = JSON.stringify({ prompt });
 
       const command = new InvokeAgentRuntimeCommand({
-        agentRuntimeArn: EVENT_AGENT_RUNTIME_ARN,
+        agentRuntimeArn: this.eventAgentRuntimeArn,
         runtimeSessionId: randomUUID() + randomUUID(),
         contentType: 'application/json',
         accept: 'application/json',

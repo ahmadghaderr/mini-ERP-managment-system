@@ -4,6 +4,8 @@ import { getCurrentUser, logout } from '../../services/auth-service';
 import { hasPermission } from '../permissions/permissions';
 import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
 import type { CurrentUser } from '../../types/user';
+import ChatWidget from '../chatbot/chatWidget';
+import { clearSessionId } from '../../lib/chatSession';
 import './AppLayout.css';
 
 const NAV_ITEMS: NavItem[] = [
@@ -111,6 +113,7 @@ export default function AppLayout() {
 
   function handleLogout() {
     logout();
+    clearSessionId();
     navigate('/login');
   }
 
@@ -165,6 +168,8 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <ChatWidget />
     </div>
   );
 }
