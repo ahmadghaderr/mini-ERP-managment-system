@@ -9,6 +9,7 @@ import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
 import { User } from '../users/entities/user.entity';
 import { Product } from '../products/entities/product.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { Product } from '../products/entities/product.entity';
       StockMovement,
       User,
       Product,
+      NotificationsModule
     ]),
   ],
   controllers: [CustomerOrdersController],

@@ -5,6 +5,9 @@ import { StockMovement } from './entities/stock-movement.entity';
 import { WarehouseProduct } from './entities/warehouse-prouct.entity';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { StockMovementReason } from '../../common/enums';
+import { NotificationsService } from '../notifications/notifications.service';
+
+const LOW_STOCK_THRESHOLD = 3;
 
 @Injectable()
 export class StockService {
@@ -14,6 +17,7 @@ export class StockService {
     @InjectRepository(WarehouseProduct)
     private readonly warehouseProductRepo: Repository<WarehouseProduct>,
     private readonly dataSource: DataSource,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   findAllMovements(): Promise<StockMovement[]> {
@@ -30,7 +34,7 @@ export class StockService {
   }
 
   async adjustStock(dto: AdjustStockDto): Promise<StockMovement> {
-    return this.dataSource.transaction(async (manager) => {
+    const savedMovement = await this.dataSource.transaction(async (manager) => {
       let stock = await manager.findOne(WarehouseProduct, {
         where: { warehouseId: dto.warehouseId, productId: dto.productId },
       });
@@ -47,17 +51,14 @@ export class StockService {
           quantityReserved: 0,
         });
       }
-
       const newQuantityOnHand = stock.quantityOnHand + dto.quantityChange;
       if (newQuantityOnHand < stock.quantityReserved) {
         throw new BadRequestException(
           `Adjustment would leave on-hand (${newQuantityOnHand}) below reserved (${stock.quantityReserved})`,
         );
       }
-
       stock.quantityOnHand = newQuantityOnHand;
       await manager.save(stock);
-
       const movement = manager.create(StockMovement, {
         warehouseId: dto.warehouseId,
         productId: dto.productId,
@@ -67,5 +68,23 @@ export class StockService {
       });
       return manager.save(movement);
     });
+
+    if (dto.quantityChange < 0) {
+      const stock = await this.warehouseProductRepo.findOne({
+        where: { warehouseId: dto.warehouseId, productId: dto.productId },
+        relations: ['warehouse', 'product'],
+      });
+      if (stock && stock.quantityOnHand < LOW_STOCK_THRESHOLD) {
+        await this.notificationsService.notifyLowStock(
+          stock.product?.productName ?? 'Unknown product',
+          stock.warehouse?.warehouseName ?? 'Unknown warehouse',
+          stock.quantityOnHand,
+          dto.productId,
+          dto.warehouseId,
+        );
+      }
+    }
+
+    return savedMovement;
   }
 }
