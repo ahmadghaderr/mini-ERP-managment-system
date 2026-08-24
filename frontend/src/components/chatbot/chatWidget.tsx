@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { sendChatMessage } from "../../services/chatbot-service";
-import { getOrCreateSessionId } from "../../lib/chatSession";
+import {
+  createChatSession,
+  listChatSessions,
+  getSessionMessages,
+  sendSessionMessage,
+} from "../../services/chatbot-service";
 import { getApiErrorMessage } from "../../lib/apiError";
 import type { ChatMessage } from "../../types/chatbot";
 import "./chatbot.css";
@@ -11,9 +15,41 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sessionId = useRef(getOrCreateSessionId());
+  const sessionId = useRef<string | null>(null);
+
+  // Resume the most recent session, or start a new one, on first mount
+  useEffect(() => {
+    async function initSession() {
+      try {
+        const sessions = await listChatSessions();
+        let activeId: string;
+
+        if (sessions.length > 0) {
+          // Most recently updated session first
+          const latest = [...sessions].sort(
+            (a, b) =>
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          )[0];
+          activeId = latest.id;
+          const history = await getSessionMessages(activeId);
+          setMessages(history);
+        } else {
+          const created = await createChatSession();
+          activeId = created.id;
+        }
+
+        sessionId.current = activeId;
+        setSessionReady(true);
+      } catch (err) {
+        setError(getApiErrorMessage(err));
+      }
+    }
+
+    initSession();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -23,10 +59,11 @@ export default function ChatWidget() {
 
   async function handleSend() {
     const trimmed = input.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || !sessionId.current) return;
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
+      chatSessionId: sessionId.current,
       role: "user",
       text: trimmed,
       createdAt: new Date().toISOString(),
@@ -37,9 +74,10 @@ export default function ChatWidget() {
     setError(null);
 
     try {
-      const result = await sendChatMessage(trimmed, sessionId.current);
+      const result = await sendSessionMessage(sessionId.current, trimmed);
       const botMessage: ChatMessage = {
         id: crypto.randomUUID(),
+        chatSessionId: sessionId.current,
         role: "assistant",
         text: result.reply,
         createdAt: new Date().toISOString(),
@@ -105,12 +143,12 @@ export default function ChatWidget() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               rows={1}
-              disabled={sending}
+              disabled={sending || !sessionReady}
             />
             <button
               className="chat-send-btn"
               onClick={handleSend}
-              disabled={sending || !input.trim()}
+              disabled={sending || !sessionReady || !input.trim()}
             >
               Send
             </button>

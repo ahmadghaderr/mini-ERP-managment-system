@@ -3,35 +3,35 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
+import { ConfigService } from "@nestjs/config";
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   TextractClient,
   AnalyzeExpenseCommand,
   AnalyzeDocumentCommand,
   Block,
-} from '@aws-sdk/client-textract';
+} from "@aws-sdk/client-textract";
 import {
   BedrockAgentCoreClient,
   InvokeAgentRuntimeCommand,
-} from '@aws-sdk/client-bedrock-agentcore';
-import { randomUUID } from 'crypto';
-import { SupplierInvoice } from './entities/supplier-invoice.entity';
-import { SupplierInvoiceItem } from './entities/supplier-invoice-item.entity';
-import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
-import { StockMovement } from '../stock/entities/stock-movement.entity';
-import { User } from '../users/entities/user.entity';
-import { SupplierInvoiceStatus, StockMovementReason } from '../../common/enums';
-import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
+} from "@aws-sdk/client-bedrock-agentcore";
+import { randomUUID } from "crypto";
+import { SupplierInvoice } from "./entities/supplier-invoice.entity";
+import { SupplierInvoiceItem } from "./entities/supplier-invoice-item.entity";
+import { WarehouseProduct } from "../stock/entities/warehouse-prouct.entity";
+import { StockMovement } from "../stock/entities/stock-movement.entity";
+import { User } from "../users/entities/user.entity";
+import { SupplierInvoiceStatus, StockMovementReason } from "../../common/enums";
+import { CreateSupplierInvoiceDto } from "./dto/create-supplier-invoice.dto";
 
 const MIN_CONFIDENCE = 85;
 const PRESIGNED_URL_TTL_SECONDS = 3600;
@@ -60,10 +60,10 @@ export class SupplierInvoicesService {
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
   ) {
-    const region = this.configService.getOrThrow<string>('COGNITO_REGION');
-    this.S3_BUCKET = this.configService.getOrThrow<string>('S3_INVOICE_BUCKET');
+    const region = this.configService.getOrThrow<string>("COGNITO_REGION");
+    this.S3_BUCKET = this.configService.getOrThrow<string>("S3_INVOICE_BUCKET");
     this.eventAgentRuntimeArn = this.configService.getOrThrow<string>(
-      'EVENT_AGENT_RUNTIME_ARN',
+      "EVENT_AGENT_RUNTIME_ARN",
     );
     this.s3 = new S3Client({ region });
     this.textract = new TextractClient({ region });
@@ -84,7 +84,7 @@ export class SupplierInvoicesService {
   private async withPresignedUrl(
     invoice: SupplierInvoice,
   ): Promise<SupplierInvoice> {
-    if (invoice.fileUrl?.startsWith('s3://')) {
+    if (invoice.fileUrl?.startsWith("s3://")) {
       invoice.fileUrl = await this.toPresignedUrl(invoice.fileUrl);
     }
     return invoice;
@@ -96,7 +96,7 @@ export class SupplierInvoicesService {
     if (!cognitoSub) return undefined;
     const user = await this.userRepo.findOne({ where: { cognitoSub } });
     if (!user) {
-      throw new BadRequestException('No user found for reviewer identity');
+      throw new BadRequestException("No user found for reviewer identity");
     }
     return user.id;
   }
@@ -106,37 +106,37 @@ export class SupplierInvoicesService {
       .map(
         (it) =>
           `- ${it.extractedProductName}: qty ${it.quantity}${
-            it.unitPrice != null ? ` @ $${Number(it.unitPrice).toFixed(2)}` : ''
+            it.unitPrice != null ? ` @ $${Number(it.unitPrice).toFixed(2)}` : ""
           }`,
       )
-      .join('\n');
+      .join("\n");
 
     const deliveryDate = invoice.extractedDeliveryDate
-      ? new Date(invoice.extractedDeliveryDate).toISOString().split('T')[0]
-      : 'unknown';
+      ? new Date(invoice.extractedDeliveryDate).toISOString().split("T")[0]
+      : "unknown";
 
     return [
       `Create a Google Calendar event for an upcoming supplier delivery.`,
-      `Supplier: ${invoice.extractedSupplierName ?? 'Unknown supplier'}`,
+      `Supplier: ${invoice.extractedSupplierName ?? "Unknown supplier"}`,
       `Delivery date: ${deliveryDate}`,
-      `Warehouse: ${invoice.warehouse?.warehouseName ?? 'Unknown warehouse'}`,
+      `Warehouse: ${invoice.warehouse?.warehouseName ?? "Unknown warehouse"}`,
       `Items ordered:`,
-      itemsList || '(no items)',
+      itemsList || "(no items)",
       ``,
-      `Please title the event "Delivery from ${invoice.extractedSupplierName ?? 'supplier'}" and schedule it on ${deliveryDate}.`,
-    ].join('\n');
+      `Please title the event "Delivery from ${invoice.extractedSupplierName ?? "supplier"}" and schedule it on ${deliveryDate}.`,
+    ].join("\n");
   }
 
   private parseAgentStreamResponse(raw: string): string {
-    const lines = raw.split('\n').filter((l) => l.trim().startsWith('data:'));
-    let text = '';
+    const lines = raw.split("\n").filter((l) => l.trim().startsWith("data:"));
+    let text = "";
     for (const line of lines) {
-      const jsonStr = line.replace(/^data:\s*/, '').trim();
+      const jsonStr = line.replace(/^data:\s*/, "").trim();
       if (!jsonStr) continue;
       try {
         const parsed = JSON.parse(jsonStr);
         const delta = parsed?.event?.contentBlockDelta?.delta?.text;
-        if (typeof delta === 'string') {
+        if (typeof delta === "string") {
           text += delta;
         }
       } catch {
@@ -156,21 +156,21 @@ export class SupplierInvoicesService {
       const command = new InvokeAgentRuntimeCommand({
         agentRuntimeArn: this.eventAgentRuntimeArn,
         runtimeSessionId: randomUUID() + randomUUID(),
-        contentType: 'application/json',
-        accept: 'application/json',
+        contentType: "application/json",
+        accept: "application/json",
         payload: new TextEncoder().encode(payload),
       });
 
       const response = await this.agentCore.send(command);
 
-      let rawText = '';
+      let rawText = "";
       if (response.response) {
         const responseBytes = await response.response.transformToByteArray();
         rawText = new TextDecoder().decode(responseBytes);
       }
 
       const parsedText = this.parseAgentStreamResponse(rawText);
-      const responseText = parsedText || 'Calendar event created.';
+      const responseText = parsedText || "Calendar event created.";
 
       this.logger.log(
         `EventAgent responded for invoice ${invoice.id}: ${responseText}`,
@@ -184,7 +184,9 @@ export class SupplierInvoicesService {
       return {
         success: false,
         message:
-          err instanceof Error ? err.message : 'Calendar event creation failed.',
+          err instanceof Error
+            ? err.message
+            : "Calendar event creation failed.",
       };
     }
   }
@@ -196,7 +198,7 @@ export class SupplierInvoicesService {
     const response = await this.textract.send(
       new AnalyzeDocumentCommand({
         Document: { S3Object: { Bucket: bucket, Name: key } },
-        FeatureTypes: ['TABLES'],
+        FeatureTypes: ["TABLES"],
       }),
     );
 
@@ -207,27 +209,32 @@ export class SupplierInvoicesService {
     });
 
     const getText = (block: Block): string => {
-      if (!block.Relationships) return '';
-      const childIds = block.Relationships.filter((r) => r.Type === 'CHILD')
-        .flatMap((r) => r.Ids ?? []);
+      if (!block.Relationships) return "";
+      const childIds = block.Relationships.filter(
+        (r) => r.Type === "CHILD",
+      ).flatMap((r) => r.Ids ?? []);
       return childIds
         .map((id) => blockById.get(id))
-        .filter((b): b is Block => !!b && b.BlockType === 'WORD')
-        .map((b) => b.Text ?? '')
-        .join(' ')
+        .filter((b): b is Block => !!b && b.BlockType === "WORD")
+        .map((b) => b.Text ?? "")
+        .join(" ")
         .trim();
     };
 
-    const results: { productName: string; quantity: number; unitPrice: number }[] = [];
-    const tableBlocks = blocks.filter((b) => b.BlockType === 'TABLE');
+    const results: {
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+    }[] = [];
+    const tableBlocks = blocks.filter((b) => b.BlockType === "TABLE");
 
     for (const table of tableBlocks) {
       const cellIds = (table.Relationships ?? [])
-        .filter((r) => r.Type === 'CHILD')
+        .filter((r) => r.Type === "CHILD")
         .flatMap((r) => r.Ids ?? []);
       const cells = cellIds
         .map((id) => blockById.get(id))
-        .filter((b): b is Block => !!b && b.BlockType === 'CELL');
+        .filter((b): b is Block => !!b && b.BlockType === "CELL");
 
       const rows = new Map<number, Block[]>();
       cells.forEach((cell) => {
@@ -245,37 +252,42 @@ export class SupplierInvoicesService {
         .map((c) => getText(c).toLowerCase());
 
       const productColIdx = headerTexts.findIndex(
-        (t) => t.includes('product') || t.includes('item') || t.includes('name'),
+        (t) =>
+          t.includes("product") || t.includes("item") || t.includes("name"),
       );
       const qtyColIdx = headerTexts.findIndex(
-        (t) => t.includes('quant') || t.includes('qty'),
+        (t) => t.includes("quant") || t.includes("qty"),
       );
       const priceColIdx = headerTexts.findIndex(
-        (t) => t.includes('price') || t.includes('amount') || t.includes('cost'),
+        (t) =>
+          t.includes("price") || t.includes("amount") || t.includes("cost"),
       );
 
       if (productColIdx === -1 || qtyColIdx === -1) continue;
 
       for (let i = 1; i < sortedRowIndices.length; i++) {
-        const row = rows.get(sortedRowIndices[i])!.sort(
-          (a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0),
-        );
+        const row = rows
+          .get(sortedRowIndices[i])!
+          .sort((a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0));
 
-        const productCell = row.find((c) => (c.ColumnIndex ?? 0) - 1 === productColIdx);
+        const productCell = row.find(
+          (c) => (c.ColumnIndex ?? 0) - 1 === productColIdx,
+        );
         const qtyCell = row.find((c) => (c.ColumnIndex ?? 0) - 1 === qtyColIdx);
         const priceCell =
           priceColIdx !== -1
             ? row.find((c) => (c.ColumnIndex ?? 0) - 1 === priceColIdx)
             : undefined;
 
-        const productName = productCell ? getText(productCell) : '';
-        const qtyText = qtyCell ? getText(qtyCell) : '';
-        const priceText = priceCell ? getText(priceCell) : '0';
+        const productName = productCell ? getText(productCell) : "";
+        const qtyText = qtyCell ? getText(qtyCell) : "";
+        const priceText = priceCell ? getText(priceCell) : "0";
 
         const quantity = parseInt(qtyText, 10);
-        const unitPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+        const unitPrice = parseFloat(priceText.replace(/[^0-9.]/g, "")) || 0;
 
-        if (!productName || !Number.isFinite(quantity) || quantity <= 0) continue;
+        if (!productName || !Number.isFinite(quantity) || quantity <= 0)
+          continue;
 
         results.push({ productName, quantity, unitPrice });
       }
@@ -286,8 +298,8 @@ export class SupplierInvoicesService {
 
   async findAll(): Promise<SupplierInvoice[]> {
     const invoices = await this.invoiceRepo.find({
-      relations: ['items', 'warehouse'],
-      order: { uploadedAt: 'DESC' },
+      relations: ["items", "warehouse"],
+      order: { uploadedAt: "DESC" },
     });
     return Promise.all(invoices.map((inv) => this.withPresignedUrl(inv)));
   }
@@ -295,7 +307,7 @@ export class SupplierInvoicesService {
   async findOne(id: string): Promise<SupplierInvoice> {
     const invoice = await this.invoiceRepo.findOne({
       where: { id },
-      relations: ['items', 'warehouse'],
+      relations: ["items", "warehouse"],
     });
     if (!invoice) {
       throw new NotFoundException(`Supplier invoice ${id} not found`);
@@ -344,7 +356,9 @@ export class SupplierInvoicesService {
       );
       const doc = response.ExpenseDocuments?.[0];
       if (!doc) {
-        throw new BadRequestException('Textract returned no ExpenseDocuments for this file');
+        throw new BadRequestException(
+          "Textract returned no ExpenseDocuments for this file",
+        );
       }
 
       const lowConfidenceFields: string[] = [];
@@ -362,13 +376,13 @@ export class SupplierInvoicesService {
         }
 
         switch (type) {
-          case 'VENDOR_NAME':
+          case "VENDOR_NAME":
             extractedSupplierName = value;
             break;
-          case 'INVOICE_RECEIPT_DATE':
+          case "INVOICE_RECEIPT_DATE":
             invoiceDateExtracted = value;
             break;
-          case 'DELIVERY_DATE':
+          case "DELIVERY_DATE":
             extractedDeliveryDate = value;
             break;
         }
@@ -383,12 +397,18 @@ export class SupplierInvoicesService {
           }
           if (!fields.ITEM) continue;
 
-          const quantity = parseInt(fields.QUANTITY ?? '1', 10);
-          const unitPrice = parseFloat((fields.UNIT_PRICE ?? '0').replace(/[^0-9.]/g, ''));
-          const extractedAmount = parseFloat((fields.PRICE ?? '0').replace(/[^0-9.]/g, ''));
+          const quantity = parseInt(fields.QUANTITY ?? "1", 10);
+          const unitPrice = parseFloat(
+            (fields.UNIT_PRICE ?? "0").replace(/[^0-9.]/g, ""),
+          );
+          const extractedAmount = parseFloat(
+            (fields.PRICE ?? "0").replace(/[^0-9.]/g, ""),
+          );
 
           if (Math.abs(extractedAmount - quantity * unitPrice) > 0.01) {
-            lowConfidenceFields.push(`line item "${fields.ITEM}" amount mismatch`);
+            lowConfidenceFields.push(
+              `line item "${fields.ITEM}" amount mismatch`,
+            );
           }
 
           itemsToCreate.push({
@@ -402,7 +422,10 @@ export class SupplierInvoicesService {
       }
 
       if (itemsToCreate.length === 0) {
-        const tableItems = await this.extractLineItemsFromTables(this.S3_BUCKET, s3Key);
+        const tableItems = await this.extractLineItemsFromTables(
+          this.S3_BUCKET,
+          s3Key,
+        );
         for (const item of tableItems) {
           itemsToCreate.push({
             supplierInvoiceId: invoice.id,
@@ -413,7 +436,9 @@ export class SupplierInvoicesService {
           });
         }
         if (tableItems.length === 0) {
-          lowConfidenceFields.push('No line items detected by either extraction method');
+          lowConfidenceFields.push(
+            "No line items detected by either extraction method",
+          );
         }
       }
 
@@ -451,7 +476,9 @@ export class SupplierInvoicesService {
       where: { id: itemId, supplierInvoiceId: invoiceId },
     });
     if (!item) {
-      throw new NotFoundException(`Item ${itemId} not found on invoice ${invoiceId}`);
+      throw new NotFoundException(
+        `Item ${itemId} not found on invoice ${invoiceId}`,
+      );
     }
     item.matchedProductId = matchedProductId;
     return this.itemRepo.save(item);
@@ -489,7 +516,10 @@ export class SupplierInvoicesService {
     return { invoice: saved, calendarEvent };
   }
 
-  async reject(id: string, reviewerCognitoSub?: string): Promise<SupplierInvoice> {
+  async reject(
+    id: string,
+    reviewerCognitoSub?: string,
+  ): Promise<SupplierInvoice> {
     const invoice = await this.findOne(id);
     invoice.status = SupplierInvoiceStatus.REJECTED;
     invoice.reviewedBy = await this.resolveReviewerId(reviewerCognitoSub);
@@ -510,8 +540,11 @@ export class SupplierInvoicesService {
         if (!item.matchedProductId) continue;
 
         let stock = await manager.findOne(WarehouseProduct, {
-          where: { warehouseId: invoice.warehouseId, productId: item.matchedProductId },
-          lock: { mode: 'pessimistic_write' },
+          where: {
+            warehouseId: invoice.warehouseId,
+            productId: item.matchedProductId,
+          },
+          lock: { mode: "pessimistic_write" },
         });
         if (!stock) {
           stock = manager.create(WarehouseProduct, {
