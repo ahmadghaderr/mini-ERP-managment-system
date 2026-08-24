@@ -5,6 +5,7 @@ import { hasPermission } from '../permissions/permissions';
 import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
 import type { CurrentUser } from '../../types/user';
 import { clearSessionId } from '../../lib/chatSession';
+import type { JSX } from 'react';
 import './AppLayout.css';
 
 const NAV_ITEMS: NavItem[] = [

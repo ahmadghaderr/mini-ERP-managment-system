@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, completeNewPassword } from "../../lib/cognito";
 import type { AuthFieldProps, AuthCardProps } from "../../types/auth";

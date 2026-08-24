@@ -44,6 +44,9 @@ import { ScheduleModule } from '@nestjs/schedule';
           database,
           autoLoadEntities: true,
           synchronize: false,
+          ssl: {
+              rejectUnauthorized: false,
+          },
           migrations: [__dirname + '/migrations/*{.ts,.js}'],
         };
       },

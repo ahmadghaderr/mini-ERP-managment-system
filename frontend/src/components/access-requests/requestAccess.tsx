@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { submitAccessRequest } from '../../services/accessRequests-service';
 import './access-requests.css';
 
 export default function RequestAccess() {
@@ -16,7 +16,7 @@ export default function RequestAccess() {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:3001/access-requests', { email });
+      await submitAccessRequest(email);
       setSubmitted(true);
     } catch {
       setError('Something went wrong. Please try again.');
