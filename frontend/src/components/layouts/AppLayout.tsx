@@ -6,6 +6,7 @@ import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/app
 import type { CurrentUser } from '../../types/user';
 import ChatWidget from '../chatbot/chatWidget';
 import { clearSessionId } from '../../lib/chatSession';
+import type { JSX } from 'react';
 import './AppLayout.css';
 
 const NAV_ITEMS: NavItem[] = [

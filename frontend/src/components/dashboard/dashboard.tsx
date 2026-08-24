@@ -570,7 +570,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                 <Area type="monotone" dataKey="revenue" stroke={TEAL} strokeWidth={2.5} fill="url(#dashRevFill)" />
                 <Area type="monotone" dataKey="spend" stroke={TEAL_DARK} strokeWidth={2} fill="url(#dashSpendFill)" strokeDasharray="4 3" />
               </AreaChart>
@@ -637,7 +637,7 @@ export default function Dashboard() {
                   tickLine={false}
                   width={100}
                 />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                 <Bar dataKey="value" fill={TEAL} radius={[0, 4, 4, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
@@ -656,7 +656,7 @@ export default function Dashboard() {
                     <Cell key={row.category} fill={CATEGORY_COLORS[row.category]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
               </PieChart>
             </ResponsiveContainer>
             <div className="dash-legend">
