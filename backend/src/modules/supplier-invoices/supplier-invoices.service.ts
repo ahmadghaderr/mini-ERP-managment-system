@@ -14,7 +14,12 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { TextractClient, AnalyzeExpenseCommand } from '@aws-sdk/client-textract';
+import {
+  TextractClient,
+  AnalyzeExpenseCommand,
+  AnalyzeDocumentCommand,
+  Block,
+} from '@aws-sdk/client-textract';
 import {
   BedrockAgentCoreClient,
   InvokeAgentRuntimeCommand,
@@ -184,6 +189,101 @@ export class SupplierInvoicesService {
     }
   }
 
+  private async extractLineItemsFromTables(
+    bucket: string,
+    key: string,
+  ): Promise<{ productName: string; quantity: number; unitPrice: number }[]> {
+    const response = await this.textract.send(
+      new AnalyzeDocumentCommand({
+        Document: { S3Object: { Bucket: bucket, Name: key } },
+        FeatureTypes: ['TABLES'],
+      }),
+    );
+
+    const blocks = response.Blocks ?? [];
+    const blockById = new Map<string, Block>();
+    blocks.forEach((b) => {
+      if (b.Id) blockById.set(b.Id, b);
+    });
+
+    const getText = (block: Block): string => {
+      if (!block.Relationships) return '';
+      const childIds = block.Relationships.filter((r) => r.Type === 'CHILD')
+        .flatMap((r) => r.Ids ?? []);
+      return childIds
+        .map((id) => blockById.get(id))
+        .filter((b): b is Block => !!b && b.BlockType === 'WORD')
+        .map((b) => b.Text ?? '')
+        .join(' ')
+        .trim();
+    };
+
+    const results: { productName: string; quantity: number; unitPrice: number }[] = [];
+    const tableBlocks = blocks.filter((b) => b.BlockType === 'TABLE');
+
+    for (const table of tableBlocks) {
+      const cellIds = (table.Relationships ?? [])
+        .filter((r) => r.Type === 'CHILD')
+        .flatMap((r) => r.Ids ?? []);
+      const cells = cellIds
+        .map((id) => blockById.get(id))
+        .filter((b): b is Block => !!b && b.BlockType === 'CELL');
+
+      const rows = new Map<number, Block[]>();
+      cells.forEach((cell) => {
+        const rowIndex = cell.RowIndex ?? 0;
+        if (!rows.has(rowIndex)) rows.set(rowIndex, []);
+        rows.get(rowIndex)!.push(cell);
+      });
+
+      const sortedRowIndices = Array.from(rows.keys()).sort((a, b) => a - b);
+      if (sortedRowIndices.length < 2) continue;
+
+      const headerRow = rows.get(sortedRowIndices[0])!;
+      const headerTexts = headerRow
+        .sort((a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0))
+        .map((c) => getText(c).toLowerCase());
+
+      const productColIdx = headerTexts.findIndex(
+        (t) => t.includes('product') || t.includes('item') || t.includes('name'),
+      );
+      const qtyColIdx = headerTexts.findIndex(
+        (t) => t.includes('quant') || t.includes('qty'),
+      );
+      const priceColIdx = headerTexts.findIndex(
+        (t) => t.includes('price') || t.includes('amount') || t.includes('cost'),
+      );
+
+      if (productColIdx === -1 || qtyColIdx === -1) continue;
+
+      for (let i = 1; i < sortedRowIndices.length; i++) {
+        const row = rows.get(sortedRowIndices[i])!.sort(
+          (a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0),
+        );
+
+        const productCell = row.find((c) => (c.ColumnIndex ?? 0) - 1 === productColIdx);
+        const qtyCell = row.find((c) => (c.ColumnIndex ?? 0) - 1 === qtyColIdx);
+        const priceCell =
+          priceColIdx !== -1
+            ? row.find((c) => (c.ColumnIndex ?? 0) - 1 === priceColIdx)
+            : undefined;
+
+        const productName = productCell ? getText(productCell) : '';
+        const qtyText = qtyCell ? getText(qtyCell) : '';
+        const priceText = priceCell ? getText(priceCell) : '0';
+
+        const quantity = parseInt(qtyText, 10);
+        const unitPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+
+        if (!productName || !Number.isFinite(quantity) || quantity <= 0) continue;
+
+        results.push({ productName, quantity, unitPrice });
+      }
+    }
+
+    return results;
+  }
+
   async findAll(): Promise<SupplierInvoice[]> {
     const invoices = await this.invoiceRepo.find({
       relations: ['items', 'warehouse'],
@@ -298,6 +398,22 @@ export class SupplierInvoicesService {
             unitPrice,
             matchedProductId: undefined,
           });
+        }
+      }
+
+      if (itemsToCreate.length === 0) {
+        const tableItems = await this.extractLineItemsFromTables(this.S3_BUCKET, s3Key);
+        for (const item of tableItems) {
+          itemsToCreate.push({
+            supplierInvoiceId: invoice.id,
+            extractedProductName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            matchedProductId: undefined,
+          });
+        }
+        if (tableItems.length === 0) {
+          lowConfidenceFields.push('No line items detected by either extraction method');
         }
       }
 
