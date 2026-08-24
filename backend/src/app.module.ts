@@ -12,6 +12,7 @@ import { CustomerOrdersModule } from './modules/customer-orders/customer-orders.
 import { AccessRequestsModule } from './modules/access-requests/access-requests.module';
 import { ChatbotModule } from './modules/chatbot/chatbot.module';
 import { HealthModule } from './health/health.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuthModule } from './auth/auth.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -59,6 +60,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     AuthModule,
     ChatbotModule,
     HealthModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

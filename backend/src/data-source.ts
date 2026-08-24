@@ -15,6 +15,10 @@ import { CustomerOrder } from './modules/customer-orders/entities/customer-order
 import { CustomerOrderItem } from './modules/customer-orders/entities/customer-order-item.entity';
 import { CustomerOrderItemAllocation } from './modules/customer-orders/entities/customer-order-item-allocation.entity';
 import { AccessRequest } from './modules/access-requests/entities/access-request.entity';
+import { Notification } from './modules/notifications/entities/notification.entity';
+import { PushSubscription } from './modules/notifications/entities/push-subscription.entity';
+import { ChatSession } from './modules/chatbot/entities/chat-session.entity';
+import { ChatMessage } from './modules/chatbot/entities/chat-message.entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -36,6 +40,11 @@ export default new DataSource({
     CustomerOrderItem,
     CustomerOrderItemAllocation,
     AccessRequest,
+    Notification,
+    PushSubscription,
+    ChatSession,
+    ChatMessage
+
   ],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
