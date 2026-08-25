@@ -13,13 +13,14 @@ function StockTable({ rows, emptyMessage, emptyPadding }: StockTableProps) {
       <thead>
         <tr>
           <th>Product</th>
-          <th style={{ width: 90 }}>Qty</th>
+          <th style={{ width: 90 }}>On Hand</th>
+          <th style={{ width: 90 }}>Reserved</th>
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 ? (
           <tr>
-            <td colSpan={2} style={{ textAlign: "center", padding: emptyPadding }}>
+            <td colSpan={3} style={{ textAlign: "center", padding: emptyPadding }}>
               {emptyMessage}
             </td>
           </tr>
@@ -28,6 +29,7 @@ function StockTable({ rows, emptyMessage, emptyPadding }: StockTableProps) {
             <tr key={`${row.productName}-${idx}`}>
               <td>{row.productName}</td>
               <td style={{ fontWeight: 600 }}>{row.quantityOnHand}</td>
+              <td style={{ color: "var(--text-muted)" }}>{row.quantityReserved}</td>
             </tr>
           ))
         )}
@@ -114,6 +116,7 @@ export default function Inventory() {
         map.get(warehouseName)!.push({
           productName,
           quantityOnHand: s.quantityOnHand,
+          quantityReserved: s.quantityReserved,
         });
       });
 

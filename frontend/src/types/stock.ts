@@ -60,6 +60,7 @@ export interface CreateTransferPayload {
 export interface StockRow {
   productName: string;
   quantityOnHand: number;
+  quantityReserved: number;
 }
 
 export interface StockTableProps {
