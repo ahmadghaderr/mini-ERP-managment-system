@@ -182,13 +182,13 @@ export default function Warehouses() {
                   <span className="loc-badge">{w.warehouseLocation}</span>
                 </td>
                 <td className="tbl-muted">{new Date(w.createdAt).toLocaleDateString()}</td>
-                {canManage && (
+                                {canManage && (
                   <td className="tbl-actions">
-                    <button className="link-btn" onClick={() => handleEdit(w)}>
+                    <button className="row-btn" onClick={() => handleEdit(w)}>
                       Edit
                     </button>
                     <button
-                      className="link-btn link-btn--danger"
+                      className="row-btn row-btn--danger"
                       onClick={() => handleDelete(w.id)}
                     >
                       Delete

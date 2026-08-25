@@ -286,13 +286,13 @@ export default function Products() {
                   </span>
                 </td>
                 <td>${p.price.toFixed(2)}</td>
-                {canManage && (
+                                {canManage && (
                   <td className="tbl-actions">
-                    <button className="link-btn" onClick={() => handleEdit(p)}>
+                    <button className="row-btn" onClick={() => handleEdit(p)}>
                       Edit
                     </button>
                     <button
-                      className="link-btn link-btn--danger"
+                      className="row-btn row-btn--danger"
                       onClick={() => handleDelete(p.id)}
                     >
                       Delete

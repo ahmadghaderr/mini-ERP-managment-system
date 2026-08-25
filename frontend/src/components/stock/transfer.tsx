@@ -198,14 +198,27 @@ export default function Transfer() {
                   ))}
                 </select>
 
-                <input
+                                <input
                   className="stk-input"
                   type="number"
                   min="1"
-                  value={item.quantity}
-                  onChange={(e) =>
-                    updateItem(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })
-                  }
+                  value={item.quantity === 0 ? "" : item.quantity}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      updateItem(idx, { quantity: 0 });
+                      return;
+                    }
+                    const parsed = parseInt(raw, 10);
+                    if (!isNaN(parsed)) {
+                      updateItem(idx, { quantity: parsed });
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!item.quantity || item.quantity < 1) {
+                      updateItem(idx, { quantity: 1 });
+                    }
+                  }}
                 />
 
                 <button
