@@ -21,8 +21,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
       StockMovement,
       User,
       Product,
-      NotificationsModule
     ]),
+    NotificationsModule,
   ],
   controllers: [CustomerOrdersController],
   providers: [CustomerOrdersService],
