@@ -9,6 +9,7 @@ import { fetchStockLevels, fetchStockMovements } from "../../services/stock-serv
 import { fetchProducts } from "../../services/product-service";
 import { fetchCustomerOrders } from "../../services/customerOrder-service";
 import { fetchSupplierInvoices } from "../../services/invoice-service";
+import { getApiErrorMessage } from "../../lib/apiError";
 import type { WarehouseStock, StockMovement } from "../../types/stock";
 import type { Product } from "../../types/product";
 import type { CustomerOrder } from "../../types/order";
@@ -262,11 +263,6 @@ interface RepeatStockoutRow {
   stockoutCount: number;
 }
 
-// NOTE: reconstructs a running balance per product from movement history
-// starting at 0 (no true "opening stock" snapshot exists). This is an
-// approximation good enough to flag repeat-stockout patterns, but the
-// exact count may be slightly off if movements predate this table's
-// earliest recorded entry.
 function computeRepeatStockouts(movements: StockMovement[]): RepeatStockoutRow[] {
   const sorted = [...movements].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const balanceByKey = new Map<string, number>();
@@ -398,6 +394,7 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [showDeadStock, setShowDeadStock] = useState(false);
   const [deadStockDays, setDeadStockDays] = useState<number>(60);
@@ -414,11 +411,14 @@ export default function Dashboard() {
     ])
       .then(([stockData, movementsData, productsData, ordersData, invoicesData]) => {
         if (cancelled) return;
-        setStock(stockData);
-        setMovements(movementsData);
-        setProducts(productsData);
-        setOrders(ordersData);
-        setInvoices(invoicesData);
+        setStock(Array.isArray(stockData) ? stockData : []);
+        setMovements(Array.isArray(movementsData) ? movementsData : []);
+        setProducts(Array.isArray(productsData) ? productsData : []);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(getApiErrorMessage(err));
       })
       .finally(() => {
         if (!cancelled) setLoadingData(false);
@@ -481,6 +481,12 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div style={{ background: "#fdecea", color: "crimson", padding: "10px 16px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+          {loadError}
+        </div>
+      )}
 
       <div className="dash-stat-grid">
         <div className="dash-stat-card">

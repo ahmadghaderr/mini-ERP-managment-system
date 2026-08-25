@@ -5,6 +5,7 @@ import { hasPermission } from '../permissions/permissions';
 import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
 import type { CurrentUser } from '../../types/user';
 import { clearSessionId } from '../../lib/chatSession';
+import { setupPushNotifications } from '../../lib/pushSubscription';
 import type { JSX } from 'react';
 import './AppLayout.css';
 
@@ -76,7 +77,7 @@ const NAV_ICONS: Record<string, JSX.Element> = {
 };
 
 function getInitials(name?: string) {
-  if (!name || !name.trim()) return '?';
+  if (!name) return '?';
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
@@ -90,7 +91,7 @@ function UserSummary({ name, role, variant }: UserSummaryProps) {
   const roleClass = variant === 'sidebar' ? 'sidebar-user-role' : 'topbar-user-role';
   return (
     <>
-      <span className={nameClass}>{name}</span>
+      <span className={nameClass}>{name ?? 'Unknown user'}</span>
       <span className={roleClass}>{role}</span>
     </>
   );
@@ -107,6 +108,12 @@ export default function AppLayout() {
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setupPushNotifications();
+    }
+  }, [user]);
 
   if (loading) {
     return <div style={{ padding: 24 }}>Loading...</div>;
