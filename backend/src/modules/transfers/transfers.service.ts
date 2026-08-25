@@ -7,6 +7,9 @@ import { StockMovement } from '../stock/entities/stock-movement.entity';
 import { StockMovementReason } from '../../common/enums';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { User } from '../users/entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+
+const LOW_STOCK_THRESHOLD = 3;
 
 @Injectable()
 export class TransfersService {
@@ -15,7 +18,10 @@ export class TransfersService {
     private readonly transferRepo: Repository<WarehouseTransfer>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(WarehouseProduct)
+    private readonly warehouseProductRepo: Repository<WarehouseProduct>,
     private readonly dataSource: DataSource,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   findAll(): Promise<WarehouseTransfer[]> {
@@ -36,25 +42,21 @@ export class TransfersService {
 
   async create(data: CreateTransferDto): Promise<WarehouseTransfer> {
     const { productId, fromWarehouseId, toWarehouseId, quantity, createdBy } = data;
-
     if (fromWarehouseId === toWarehouseId) {
       throw new BadRequestException('Source and destination must differ');
     }
-
     const resolvedUserId = await this.resolveUserId(createdBy);
 
-    return this.dataSource.transaction(async (manager) => {
+    const savedTransfer = await this.dataSource.transaction(async (manager) => {
       const source = await manager.findOne(WarehouseProduct, {
         where: { warehouseId: fromWarehouseId, productId },
       });
-
       const available = (source?.quantityOnHand ?? 0) - (source?.quantityReserved ?? 0);
       if (!source || available < quantity) {
         throw new BadRequestException(
           `Not enough available stock in source warehouse (have ${available}, need ${quantity})`,
         );
       }
-
       source.quantityOnHand -= quantity;
       await manager.save(source);
 
@@ -101,5 +103,21 @@ export class TransfersService {
 
       return savedTransfer;
     });
+
+    const sourceStock = await this.warehouseProductRepo.findOne({
+      where: { warehouseId: fromWarehouseId, productId },
+      relations: ['warehouse', 'product'],
+    });
+    if (sourceStock && sourceStock.quantityOnHand < LOW_STOCK_THRESHOLD) {
+      await this.notificationsService.notifyLowStock(
+        sourceStock.product?.productName ?? 'Unknown product',
+        sourceStock.warehouse?.warehouseName ?? 'Unknown warehouse',
+        sourceStock.quantityOnHand,
+        productId,
+        fromWarehouseId,
+      );
+    }
+
+    return savedTransfer;
   }
 }

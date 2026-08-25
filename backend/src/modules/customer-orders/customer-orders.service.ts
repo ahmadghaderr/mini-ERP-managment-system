@@ -2,33 +2,35 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource } from "typeorm";
-import { ConfigService } from "@nestjs/config";
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   TextractClient,
   AnalyzeDocumentCommand,
   Block,
-} from "@aws-sdk/client-textract";
-import { randomUUID } from "crypto";
-import { CustomerOrder } from "./entities/customer-order.entity";
-import { CustomerOrderItem } from "./entities/customer-order-item.entity";
-import { CustomerOrderItemAllocation } from "./entities/customer-order-item-allocation.entity";
-import { WarehouseProduct } from "../stock/entities/warehouse-prouct.entity";
-import { StockMovement } from "../stock/entities/stock-movement.entity";
-import { User } from "../users/entities/user.entity";
-import { Product } from "../products/entities/product.entity";
-import { CustomerOrderStatus, StockMovementReason } from "../../common/enums";
+} from '@aws-sdk/client-textract';
+import { randomUUID } from 'crypto';
+import { CustomerOrder } from './entities/customer-order.entity';
+import { CustomerOrderItem } from './entities/customer-order-item.entity';
+import { CustomerOrderItemAllocation } from './entities/customer-order-item-allocation.entity';
+import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
+import { StockMovement } from '../stock/entities/stock-movement.entity';
+import { User } from '../users/entities/user.entity';
+import { Product } from '../products/entities/product.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { CustomerOrderStatus, StockMovementReason } from '../../common/enums';
 
-const PRESIGNED_URL_TTL_SECONDS = 900;
+const PRESIGNED_URL_TTL_SECONDS = 3600;
+const LOW_STOCK_THRESHOLD = 3;
 
 @Injectable()
 export class CustomerOrdersService {
@@ -45,11 +47,14 @@ export class CustomerOrdersService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
+    @InjectRepository(WarehouseProduct)
+    private readonly warehouseProductRepo: Repository<WarehouseProduct>,
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {
-    const region = this.configService.getOrThrow<string>("COGNITO_REGION");
-    this.S3_BUCKET = this.configService.getOrThrow<string>("S3_INVOICE_BUCKET");
+    const region = this.configService.getOrThrow<string>('COGNITO_REGION');
+    this.S3_BUCKET = this.configService.getOrThrow<string>('S3_INVOICE_BUCKET');
     this.s3 = new S3Client({ region });
     this.textract = new TextractClient({ region });
   }
@@ -66,7 +71,7 @@ export class CustomerOrdersService {
   }
 
   private async withPresignedUrl(order: CustomerOrder): Promise<CustomerOrder> {
-    if (order.fileUrl?.startsWith("s3://")) {
+    if (order.fileUrl?.startsWith('s3://')) {
       order.fileUrl = await this.toPresignedUrl(order.fileUrl);
     }
     return order;
@@ -78,15 +83,15 @@ export class CustomerOrdersService {
     if (!cognitoSub) return undefined;
     const user = await this.userRepo.findOne({ where: { cognitoSub } });
     if (!user) {
-      throw new BadRequestException("No user found for reviewer identity");
+      throw new BadRequestException('No user found for reviewer identity');
     }
     return user.id;
   }
 
   async findAll(): Promise<CustomerOrder[]> {
     const orders = await this.orderRepo.find({
-      relations: ["items", "warehouse"],
-      order: { uploadedAt: "DESC" },
+      relations: ['items', 'warehouse'],
+      order: { uploadedAt: 'DESC' },
     });
     return Promise.all(orders.map((o) => this.withPresignedUrl(o)));
   }
@@ -94,7 +99,7 @@ export class CustomerOrdersService {
   async findOne(id: string): Promise<CustomerOrder> {
     const order = await this.orderRepo.findOne({
       where: { id },
-      relations: ["items", "warehouse"],
+      relations: ['items', 'warehouse'],
     });
     if (!order) throw new NotFoundException(`Customer order ${id} not found`);
     return this.withPresignedUrl(order);
@@ -125,7 +130,7 @@ export class CustomerOrdersService {
       const response = await this.textract.send(
         new AnalyzeDocumentCommand({
           Document: { S3Object: { Bucket: this.S3_BUCKET, Name: s3Key } },
-          FeatureTypes: ["TABLES"],
+          FeatureTypes: ['TABLES'],
         }),
       );
 
@@ -136,29 +141,28 @@ export class CustomerOrdersService {
       });
 
       const getText = (block: Block): string => {
-        if (!block.Relationships) return "";
-        const childIds = block.Relationships.filter(
-          (r) => r.Type === "CHILD",
-        ).flatMap((r) => r.Ids ?? []);
+        if (!block.Relationships) return '';
+        const childIds = block.Relationships.filter((r) => r.Type === 'CHILD')
+          .flatMap((r) => r.Ids ?? []);
         return childIds
           .map((id) => blockById.get(id))
-          .filter((b): b is Block => !!b && b.BlockType === "WORD")
-          .map((b) => b.Text ?? "")
-          .join(" ")
+          .filter((b): b is Block => !!b && b.BlockType === 'WORD')
+          .map((b) => b.Text ?? '')
+          .join(' ')
           .trim();
       };
 
-      const tableBlocks = blocks.filter((b) => b.BlockType === "TABLE");
+      const tableBlocks = blocks.filter((b) => b.BlockType === 'TABLE');
       const lowConfidenceFields: string[] = [];
       const itemsToCreate: Partial<CustomerOrderItem>[] = [];
 
       for (const table of tableBlocks) {
         const cellIds = (table.Relationships ?? [])
-          .filter((r) => r.Type === "CHILD")
+          .filter((r) => r.Type === 'CHILD')
           .flatMap((r) => r.Ids ?? []);
         const cells = cellIds
           .map((id) => blockById.get(id))
-          .filter((b): b is Block => !!b && b.BlockType === "CELL");
+          .filter((b): b is Block => !!b && b.BlockType === 'CELL');
 
         const rows = new Map<number, Block[]>();
         cells.forEach((cell) => {
@@ -175,30 +179,23 @@ export class CustomerOrdersService {
           .sort((a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0))
           .map((c) => getText(c).toLowerCase());
 
-        const productColIdx = headerTexts.findIndex(
-          (t) =>
-            t.includes("product") || t.includes("item") || t.includes("name"),
+        const productColIdx = headerTexts.findIndex((t) =>
+          t.includes('product') || t.includes('item') || t.includes('name'),
         );
-        const qtyColIdx = headerTexts.findIndex(
-          (t) => t.includes("quant") || t.includes("qty"),
-        );
+        const qtyColIdx = headerTexts.findIndex((t) => t.includes('quant') || t.includes('qty'));
 
         if (productColIdx === -1 || qtyColIdx === -1) continue;
 
         for (let i = 1; i < sortedRowIndices.length; i++) {
-          const row = rows
-            .get(sortedRowIndices[i])!
-            .sort((a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0));
-
-          const productCell = row.find(
-            (c) => (c.ColumnIndex ?? 0) - 1 === productColIdx,
-          );
-          const qtyCell = row.find(
-            (c) => (c.ColumnIndex ?? 0) - 1 === qtyColIdx,
+          const row = rows.get(sortedRowIndices[i])!.sort(
+            (a, b) => (a.ColumnIndex ?? 0) - (b.ColumnIndex ?? 0),
           );
 
-          const productName = productCell ? getText(productCell) : "";
-          const qtyText = qtyCell ? getText(qtyCell) : "";
+          const productCell = row.find((c) => (c.ColumnIndex ?? 0) - 1 === productColIdx);
+          const qtyCell = row.find((c) => (c.ColumnIndex ?? 0) - 1 === qtyColIdx);
+
+          const productName = productCell ? getText(productCell) : '';
+          const qtyText = qtyCell ? getText(qtyCell) : '';
           const quantity = parseInt(qtyText, 10);
 
           if (!productName || !Number.isFinite(quantity) || quantity <= 0) {
@@ -216,19 +213,16 @@ export class CustomerOrdersService {
       }
 
       if (itemsToCreate.length === 0) {
-        lowConfidenceFields.push(
-          "No product/quantity table detected in this document",
-        );
+        lowConfidenceFields.push('No product/quantity table detected in this document');
       }
 
       let extractedCustomerName: string | undefined;
-      const lines = blocks.filter((b) => b.BlockType === "LINE");
+      const lines = blocks.filter((b) => b.BlockType === 'LINE');
       const customerLine = lines.find((l) =>
-        (l.Text ?? "").toLowerCase().includes("customer"),
+        (l.Text ?? '').toLowerCase().includes('customer'),
       );
       if (customerLine?.Text) {
-        extractedCustomerName =
-          customerLine.Text.replace(/customer:?/i, "").trim() || undefined;
+        extractedCustomerName = customerLine.Text.replace(/customer:?/i, '').trim() || undefined;
       }
 
       order.extractedCustomerName = extractedCustomerName;
@@ -275,10 +269,7 @@ export class CustomerOrdersService {
     return this.itemRepo.save(item);
   }
 
-  async confirm(
-    id: string,
-    reviewerCognitoSub?: string,
-  ): Promise<CustomerOrder> {
+  async confirm(id: string, reviewerCognitoSub?: string): Promise<CustomerOrder> {
     const order = await this.findOne(id);
     if (order.status !== CustomerOrderStatus.PENDING) {
       throw new BadRequestException(
@@ -302,13 +293,11 @@ export class CustomerOrdersService {
         let remaining = item.quantity;
 
         const stockRows = await manager
-          .createQueryBuilder(WarehouseProduct, "wp")
-          .innerJoinAndSelect("wp.warehouse", "warehouse")
-          .where("wp.productId = :productId", {
-            productId: item.matchedProductId,
-          })
-          .orderBy("warehouse.createdAt", "ASC")
-          .setLock("pessimistic_write")
+          .createQueryBuilder(WarehouseProduct, 'wp')
+          .innerJoinAndSelect('wp.warehouse', 'warehouse')
+          .where('wp.productId = :productId', { productId: item.matchedProductId })
+          .orderBy('warehouse.createdAt', 'ASC')
+          .setLock('pessimistic_write')
           .getMany();
 
         for (const stock of stockRows) {
@@ -353,7 +342,9 @@ export class CustomerOrdersService {
       );
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const affectedStockKeys: { warehouseId: string; productId: string }[] = [];
+
+    const savedOrder = await this.dataSource.transaction(async (manager) => {
       for (const item of order.items) {
         const allocations = await manager.find(CustomerOrderItemAllocation, {
           where: { customerOrderItemId: item.id },
@@ -365,7 +356,7 @@ export class CustomerOrdersService {
               warehouseId: allocation.warehouseId,
               productId: item.matchedProductId,
             },
-            lock: { mode: "pessimistic_write" },
+            lock: { mode: 'pessimistic_write' },
           });
           if (!stock) {
             throw new BadRequestException(
@@ -376,6 +367,11 @@ export class CustomerOrdersService {
           stock.quantityOnHand -= allocation.quantity;
           stock.quantityReserved -= allocation.quantity;
           await manager.save(stock);
+
+          affectedStockKeys.push({
+            warehouseId: allocation.warehouseId,
+            productId: item.matchedProductId!,
+          });
 
           const movement = manager.create(StockMovement, {
             warehouseId: allocation.warehouseId,
@@ -392,12 +388,27 @@ export class CustomerOrdersService {
       order.deliveredAt = new Date();
       return manager.save(order);
     });
+
+    for (const key of affectedStockKeys) {
+      const stock = await this.warehouseProductRepo.findOne({
+        where: { warehouseId: key.warehouseId, productId: key.productId },
+        relations: ['warehouse', 'product'],
+      });
+      if (stock && stock.quantityOnHand < LOW_STOCK_THRESHOLD) {
+        await this.notificationsService.notifyLowStock(
+          stock.product?.productName ?? 'Unknown product',
+          stock.warehouse?.warehouseName ?? 'Unknown warehouse',
+          stock.quantityOnHand,
+          key.productId,
+          key.warehouseId,
+        );
+      }
+    }
+
+    return savedOrder;
   }
 
-  async reject(
-    id: string,
-    reviewerCognitoSub?: string,
-  ): Promise<CustomerOrder> {
+  async reject(id: string, reviewerCognitoSub?: string): Promise<CustomerOrder> {
     const order = await this.findOne(id);
 
     if (
@@ -424,7 +435,7 @@ export class CustomerOrdersService {
                 warehouseId: allocation.warehouseId,
                 productId: item.matchedProductId,
               },
-              lock: { mode: "pessimistic_write" },
+              lock: { mode: 'pessimistic_write' },
             });
             if (stock) {
               stock.quantityReserved -= allocation.quantity;
