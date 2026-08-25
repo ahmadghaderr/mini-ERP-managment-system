@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageLoader from "../shared/PageLoader";
 import "./orders.css";
 import type { CustomerOrder, CustomerOrderStatus } from "../../types/order";
 import { fetchCustomerOrders } from "../../services/customerOrder-service";
@@ -53,8 +54,8 @@ export default function List({ onUploadClick }: ListProps) {
         .includes(search.toLowerCase()),
   );
 
-  if (loading) {
-    return <div style={{ padding: 24 }}>Loading orders...</div>;
+   if (loading) {
+    return <PageLoader />;
   }
 
   if (error) {

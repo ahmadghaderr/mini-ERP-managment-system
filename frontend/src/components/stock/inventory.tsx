@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./stock.css";
+import PageLoader from "../shared/PageLoader";
 import { fetchStockLevels, adjustStock } from "../../services/stock-service";
 import type { WarehouseStock, StockRow, StockTableProps } from "../../types/stock";
 import { fetchProducts } from "../../services/product-service";
@@ -169,8 +170,8 @@ export default function Inventory() {
 
   const activeRows = activeWarehouse ? (rowsByWarehouse.get(activeWarehouse) ?? []) : [];
 
-  if (loading) {
-    return <div style={{ padding: 24 }}>Loading inventory...</div>;
+    if (loading) {
+    return <PageLoader />;
   }
 
   if (error) {
