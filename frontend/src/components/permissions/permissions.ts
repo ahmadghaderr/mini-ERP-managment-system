@@ -17,7 +17,8 @@ export type Action =
   | 'transfers:view'
   | 'transfers:create'
   | 'transfers:approve'
-  | 'users:manage';
+  | 'users:manage'
+  | 'dashboard:financials';
 
 const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
   manager: [
@@ -37,6 +38,7 @@ const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
     'transfers:view',
     'transfers:create',
     'transfers:approve',
+    'dashboard:financials',
   ],
   staff: [
     'warehouses:view',

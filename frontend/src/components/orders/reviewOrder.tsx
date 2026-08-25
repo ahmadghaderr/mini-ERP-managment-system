@@ -48,6 +48,33 @@ export default function OrderReview() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+
+    const refreshFileUrl = () => {
+      fetchCustomerOrder(id).then((ord) => {
+        setOrder((prev) => (prev ? { ...prev, fileUrl: ord.fileUrl } : ord));
+      });
+    };
+
+    const interval = setInterval(refreshFileUrl, 10 * 60 * 1000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshFileUrl();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refreshFileUrl);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refreshFileUrl);
+    };
+  }, [id]);
+
   const handleBack = () => navigate(-1);
 
   async function handleMatch(itemId: string, matchedProductId: string) {
@@ -169,8 +196,13 @@ export default function OrderReview() {
           </button>
           <button
             className="ord-btn ord-btn--danger"
-            disabled={saving}
+            disabled={saving || order.status === "delivered"}
             onClick={handleDelete}
+            title={
+              order.status === "delivered"
+                ? "Delivered orders already reserved/decreased stock and can't be deleted"
+                : undefined
+            }
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />

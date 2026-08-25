@@ -89,12 +89,29 @@ export default function Review() {
 
   useEffect(() => {
     if (!id) return;
-    const interval = setInterval(() => {
+
+    const refreshFileUrl = () => {
       fetchSupplierInvoice(id).then((inv) => {
         setInvoice((prev) => (prev ? { ...prev, fileUrl: inv.fileUrl } : inv));
       });
-    }, 10 * 60 * 1000);
-    return () => clearInterval(interval);
+    };
+
+    const interval = setInterval(refreshFileUrl, 10 * 60 * 1000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshFileUrl();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refreshFileUrl);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refreshFileUrl);
+    };
   }, [id]);
 
   async function autoMatchItems(inv: SupplierInvoice, productList: Product[]) {
@@ -259,8 +276,13 @@ export default function Review() {
           {canApprove && (
             <button
               className="inv-btn inv-btn--danger"
-              disabled={saving}
+              disabled={saving || invoice.status === "delivered"}
               onClick={handleDelete}
+              title={
+                invoice.status === "delivered"
+                  ? "Delivered invoices already added stock and can't be deleted"
+                  : undefined
+              }
             >
               <svg
                 viewBox="0 0 24 24"
