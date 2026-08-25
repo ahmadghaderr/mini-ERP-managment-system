@@ -319,8 +319,9 @@ h2, h3 {
 }
 
 .row-btn--danger:hover {
-  background: var(--danger-bg-hover);
+  background: var(--danger-text);
   border-color: var(--danger-text);
+  color: #ffffff;
 }
 .page-loader {
   display: flex;
