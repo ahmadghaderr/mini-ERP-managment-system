@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageLoader from "../shared/PageLoader";
 import { useNavigate, useParams } from "react-router-dom";
 import "./invoices.css";
 import type {
@@ -216,7 +217,7 @@ export default function Review() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   if (loadError) {

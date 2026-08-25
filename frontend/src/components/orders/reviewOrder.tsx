@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageLoader from "../shared/PageLoader";
 import { useNavigate, useParams } from "react-router-dom";
 import "./orders.css";
 import type { CustomerOrder } from "../../types/order";
@@ -127,7 +128,7 @@ export default function OrderReview() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   if (loadError) {

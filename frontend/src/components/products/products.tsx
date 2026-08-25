@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PageLoader from "../shared/PageLoader";
 import { hasPermission } from "../permissions/permissions";
 import { decodeToken } from "../../lib/cognito";
 import type { Role } from "../permissions/permissions";
@@ -203,7 +204,7 @@ export default function Products() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   return (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageLoader from "../shared/PageLoader";
 import { useNavigate } from "react-router-dom";
 import "./stock.css";
 import { fetchWarehouses } from "../../services/warehouse-service";
@@ -123,7 +124,7 @@ export default function Transfer() {
     .slice(0, 8);
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+       return <PageLoader />;
   }
 
   return (

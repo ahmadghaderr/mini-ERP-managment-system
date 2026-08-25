@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageLoader from "../shared/PageLoader";
 import { useNavigate } from "react-router-dom";
 import "./invoices.css";
 import type { SupplierInvoice, SupplierInvoiceStatus } from "../../types/supplierInvoice";
@@ -44,7 +45,7 @@ export default function List() {
   );
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   return (

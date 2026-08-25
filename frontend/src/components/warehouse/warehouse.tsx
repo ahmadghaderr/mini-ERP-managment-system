@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { hasPermission } from "../permissions/permissions";
 import { decodeToken } from "../../lib/cognito";
+import PageLoader from "../shared/PageLoader";
 import type { Role } from "../permissions/permissions";
 import type { Warehouse, CreateWarehousePayload, WarehouseModalProps } from "../../types/warehouse";
 import { fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from "../../services/warehouse-service";
@@ -130,7 +131,7 @@ export default function Warehouses() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   return (

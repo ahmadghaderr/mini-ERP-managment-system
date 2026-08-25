@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import PageLoader from "../shared/PageLoader";
 import "./stock.css";
 import type { StockMovement, StockMovementReason } from "../../types/stock";
 import { fetchStockMovements } from "../../services/stock-service";
@@ -134,7 +135,7 @@ export default function Ledger() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   return (

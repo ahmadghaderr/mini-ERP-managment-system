@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { UserList } from "./userList";
+import PageLoader from "../shared/PageLoader";
 import UserModal from "./userModal";
 import "./users.css";
 import { fetchUsers, createUser, updateUser, deleteUser } from "../../services/user-service";
@@ -63,7 +64,7 @@ export default function Users() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+        return <PageLoader />;
   }
 
   return (

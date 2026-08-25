@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PageLoader from "../shared/PageLoader";
 import {
   fetchAccessRequests,
   approveAccessRequest,
@@ -63,7 +64,7 @@ export default function PendingRequests() {
   const reviewed = requests.filter((r) => r.status !== "pending");
 
   if (loading) {
-    return <div className="acr-page-content">Loading...</div>;
+        return <PageLoader />;
   }
 
   return (
