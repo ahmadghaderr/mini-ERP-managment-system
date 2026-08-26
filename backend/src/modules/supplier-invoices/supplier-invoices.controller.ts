@@ -39,7 +39,7 @@ export class SupplierInvoicesController {
     return this.service.create(data);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin','manager','staff')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   upload(
@@ -49,7 +49,7 @@ export class SupplierInvoicesController {
     return this.service.uploadAndExtract(file, warehouseId);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin','manager','staff')
   @Patch(':invoiceId/items/:itemId/match')
   matchItem(
     @Param('invoiceId') invoiceId: string,

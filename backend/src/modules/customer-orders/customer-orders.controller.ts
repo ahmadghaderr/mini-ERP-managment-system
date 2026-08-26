@@ -33,7 +33,7 @@ export class CustomerOrdersController {
     return this.service.findOne(id);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin','manager','staff')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   upload(
@@ -43,7 +43,7 @@ export class CustomerOrdersController {
     return this.service.uploadAndExtract(file, warehouseId);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin','manager','staff')
   @Patch(':orderId/items/:itemId/match')
   matchItem(
     @Param('orderId') orderId: string,
