@@ -4,6 +4,7 @@ import "./orders.css";
 import {
   uploadCustomerOrder,
   matchCustomerOrderItem,
+  updateCustomerOrderName,
   confirmCustomerOrder,
   rejectCustomerOrder,
 } from "../../services/customerOrder-service";
@@ -59,6 +60,10 @@ export default function Order({ onBack }: OrderProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [autoMatching, setAutoMatching] = useState(false);
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     fetchProducts()
@@ -153,6 +158,34 @@ export default function Order({ onBack }: OrderProps) {
       });
     } catch (err) {
       setActionError(getApiErrorMessage(err));
+    }
+  }
+
+  function startEditName() {
+    if (!order) return;
+    setNameDraft(order.extractedCustomerName ?? "");
+    setEditingName(true);
+  }
+
+  function cancelEditName() {
+    setEditingName(false);
+  }
+
+  async function handleSaveName() {
+    if (!order) return;
+    const trimmed = nameDraft.trim();
+    if (!trimmed) return;
+
+    setSavingName(true);
+    setActionError(null);
+    try {
+      const updated = await updateCustomerOrderName(order.id, trimmed);
+      setOrder(updated);
+      setEditingName(false);
+    } catch (err) {
+      setActionError(getApiErrorMessage(err));
+    } finally {
+      setSavingName(false);
     }
   }
 
@@ -265,6 +298,56 @@ export default function Order({ onBack }: OrderProps) {
               <div className="ord-extracted-header">
                 <div>
                   <h3>Requested Items</h3>
+                  {editingName ? (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+                      <input
+                        className="ord-input ord-input--sm"
+                        style={{ maxWidth: 220 }}
+                        value={nameDraft}
+                        onChange={(e) => setNameDraft(e.target.value)}
+                        autoFocus
+                        disabled={savingName}
+                      />
+                      <button
+                        className="ord-btn ord-btn--primary"
+                        style={{ padding: "6px 14px", minHeight: 32 }}
+                        disabled={savingName || !nameDraft.trim()}
+                        onClick={handleSaveName}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="ord-btn ord-btn--ghost"
+                        style={{ padding: "6px 14px", minHeight: 32 }}
+                        disabled={savingName}
+                        onClick={cancelEditName}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <p
+                      className="ord-subtext"
+                      style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}
+                    >
+                      {order.extractedCustomerName ?? "Unknown customer"}
+                      <button
+                        onClick={startEditName}
+                        aria-label="Edit customer name"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#3ab5cc",
+                          fontWeight: 600,
+                          fontSize: 12,
+                          padding: 0,
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </p>
+                  )}
                   <p className="ord-subtext">
                     {autoMatching
                       ? "Auto-matching items to products..."
