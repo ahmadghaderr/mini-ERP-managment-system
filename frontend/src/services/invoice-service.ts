@@ -64,6 +64,19 @@ export async function matchSupplierInvoiceItem(
   return response.data;
 }
 
+export async function updateSupplierInvoiceItemPrice(
+  invoiceId: string,
+  itemId: string,
+  unitPrice: number,
+): Promise<SupplierInvoiceItem> {
+  const response = await axios.patch(
+    `${API_BASE}/supplier-invoices/${invoiceId}/items/${itemId}/price`,
+    { unitPrice },
+    { headers: authHeaders() },
+  );
+  return response.data;
+}
+
 export async function confirmSupplierInvoice(id: string): Promise<ConfirmInvoiceResponse> {
   const response = await axios.patch(
     `${API_BASE}/supplier-invoices/${id}/confirm`,

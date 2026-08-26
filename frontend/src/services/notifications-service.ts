@@ -28,3 +28,38 @@ export async function unsubscribeFromPush(endpoint: string): Promise<void> {
     data: { endpoint },
   });
 }
+
+export interface AppNotification {
+  id: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export async function fetchMyNotifications(): Promise<AppNotification[]> {
+  const response = await axios.get(`${API_BASE}/notifications`, {
+    headers: authHeaders(),
+  });
+  return response.data;
+}
+
+export const NOTIFICATIONS_CHANGED_EVENT = "notifications-changed";
+
+function notifyNotificationsChanged() {
+  window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await axios.patch(`${API_BASE}/notifications/${id}/read`, {}, {
+    headers: authHeaders(),
+  });
+  notifyNotificationsChanged();
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await axios.patch(`${API_BASE}/notifications/read-all`, {}, {
+    headers: authHeaders(),
+  });
+  notifyNotificationsChanged();
+}

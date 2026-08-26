@@ -8,6 +8,7 @@ import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/app
 import type { CurrentUser } from '../../types/user';
 import { clearSessionId } from '../../lib/chatSession';
 import { setupPushNotifications } from '../../lib/pushSubscription';
+import NotificationBell from '../notifications/notificationBell';
 import type { JSX } from 'react';
 import './AppLayout.css';
 
@@ -160,7 +161,7 @@ export default function AppLayout() {
 
   return (
     <div className="app-layout">
-      <aside className="sidebar">
+       <aside className="sidebar">
         <div className="sidebar-logo">
           <span className="sidebar-logo-mark">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -168,10 +169,17 @@ export default function AppLayout() {
             </svg>
           </span>
           StockPilot
+          <div style={{ marginLeft: 'auto' }}>
+            <NotificationBell />
+          </div>
         </div>
         <nav className="sidebar-nav">
           {allNavItems.map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
+            >
               <span className="sidebar-link-icon">{NAV_ICONS[item.to]}</span>
               {t(NAV_LABEL_KEYS[item.to] ?? item.label)}
             </NavLink>
@@ -187,9 +195,11 @@ export default function AppLayout() {
         </div>
       </aside>
 
+
       <div className="app-main">
         <header className="topbar">
-          <div className="topbar-left"></div>
+          <div className="topbar-left">
+          </div>
           <div className="topbar-right">
             <button className="topbar-lang-toggle" onClick={toggleLanguage}>
               {i18n.language === 'ar' ? 'EN' : 'العربية'}
@@ -203,11 +213,11 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
+
         <main className="page-content">
           <Outlet />
         </main>
       </div>
-
     </div>
   );
 }

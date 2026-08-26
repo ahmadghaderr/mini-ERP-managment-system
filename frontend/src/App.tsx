@@ -18,6 +18,7 @@ import RequestAccess from './components/access-requests/requestAccess';
 import PendingRequests from './components/access-requests/pendingRequests';
 import ReviewOrder from './components/orders/reviewOrder';
 import ChatPage from './components/chatbot/chatPage';
+import NotificationsPage from './components/notifications/notificationsPage';
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/access-requests" element={<PendingRequests />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

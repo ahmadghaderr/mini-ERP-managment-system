@@ -5,10 +5,10 @@ import { CustomerOrderItem } from './entities/customer-order-item.entity';
 import { CustomerOrderItemAllocation } from './entities/customer-order-item-allocation.entity';
 import { CustomerOrdersService } from './customer-orders.service';
 import { CustomerOrdersController } from './customer-orders.controller';
-import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { StockMovement } from '../stock/entities/stock-movement.entity';
 import { User } from '../users/entities/user.entity';
 import { Product } from '../products/entities/product.entity';
+import { WarehouseProduct } from '../stock/entities/warehouse-prouct.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -21,8 +21,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
       StockMovement,
       User,
       Product,
-      NotificationsModule
     ]),
+    NotificationsModule,
   ],
   controllers: [CustomerOrdersController],
   providers: [CustomerOrdersService],

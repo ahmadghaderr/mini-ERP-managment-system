@@ -33,7 +33,7 @@ export class CustomerOrdersController {
     return this.service.findOne(id);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin','manager','staff')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   upload(
@@ -43,7 +43,7 @@ export class CustomerOrdersController {
     return this.service.uploadAndExtract(file, warehouseId);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin','manager','staff')
   @Patch(':orderId/items/:itemId/match')
   matchItem(
     @Param('orderId') orderId: string,
@@ -51,6 +51,15 @@ export class CustomerOrdersController {
     @Body() dto: MatchItemDto,
   ) {
     return this.service.matchItem(orderId, itemId, dto.matchedProductId);
+  }
+
+  @Roles('admin', 'manager', 'staff')
+  @Patch(':id/customer-name')
+  updateCustomerName(
+    @Param('id') id: string,
+    @Body('extractedCustomerName') extractedCustomerName: string,
+  ) {
+    return this.service.updateCustomerName(id, extractedCustomerName);
   }
 
   @Roles('admin', 'manager')

@@ -8,6 +8,7 @@ import {
 } from "../../services/chatbot-service";
 import { getApiErrorMessage } from "../../lib/apiError";
 import type { ChatMessage } from "../../types/chatbot";
+import MarkdownMessage from "./MarkdownMessage";
 import "./chatbot.css";
 
 export default function ChatWidget() {
@@ -125,7 +126,7 @@ export default function ChatWidget() {
                 key={m.id}
                 className={`chat-message chat-message--${m.role}`}
               >
-                {m.text}
+                <MarkdownMessage text={m.text} />
               </div>
             ))}
             {sending && (

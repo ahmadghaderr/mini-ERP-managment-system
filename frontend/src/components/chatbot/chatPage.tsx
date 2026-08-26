@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./chatbot.css";
+import MarkdownMessage from "./MarkdownMessage";
 import {
   createChatSession,
   listChatSessions,
@@ -248,7 +249,9 @@ export default function ChatPage() {
                       <div className="chat-avatar chat-avatar--bot">🤖</div>
                     )}
                     <div className="chat-msg-group">
-                      <div className={`chat-msg chat-msg--${m.role}`}>{m.text}</div>
+                      <div className={`chat-msg chat-msg--${m.role}`}>
+                        <MarkdownMessage text={m.text} />
+                      </div>
                       <span className={`chat-msg-time chat-msg-time--${m.role}`}>
                         {formatTime(m.createdAt, i18n.language)}
                       </span>
