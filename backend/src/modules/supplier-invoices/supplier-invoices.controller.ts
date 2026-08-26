@@ -15,6 +15,7 @@ import { SupplierInvoicesService } from './supplier-invoices.service';
 import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 import { ReviewSupplierInvoiceDto } from './dto/review-supplier-invoice.dto';
 import { MatchItemDto } from './dto/match-item.dto';
+import { UpdateItemPriceDto } from './dto/update-item-price.dto';
 import { Roles } from '../../auth/roles.decorator';
 
 @Controller('supplier-invoices')
@@ -39,7 +40,7 @@ export class SupplierInvoicesController {
     return this.service.create(data);
   }
 
-  @Roles('admin','manager','staff')
+  @Roles('admin', 'manager', 'staff')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   upload(
@@ -49,7 +50,7 @@ export class SupplierInvoicesController {
     return this.service.uploadAndExtract(file, warehouseId);
   }
 
-  @Roles('admin','manager','staff')
+  @Roles('admin', 'staff')
   @Patch(':invoiceId/items/:itemId/match')
   matchItem(
     @Param('invoiceId') invoiceId: string,
@@ -57,6 +58,16 @@ export class SupplierInvoicesController {
     @Body() dto: MatchItemDto,
   ) {
     return this.service.matchItem(invoiceId, itemId, dto.matchedProductId);
+  }
+
+  @Roles('admin', 'staff')
+  @Patch(':invoiceId/items/:itemId/price')
+  updateItemPrice(
+    @Param('invoiceId') invoiceId: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemPriceDto,
+  ) {
+    return this.service.updateItemPrice(invoiceId, itemId, dto.unitPrice);
   }
 
   @Roles('admin', 'manager')

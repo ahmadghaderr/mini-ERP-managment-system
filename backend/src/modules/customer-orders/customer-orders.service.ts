@@ -32,6 +32,12 @@ import { CustomerOrderStatus, StockMovementReason } from '../../common/enums';
 const PRESIGNED_URL_TTL_SECONDS = 3600;
 const LOW_STOCK_THRESHOLD = 3;
 
+const CUSTOMER_NAME_LABEL_PATTERNS = [
+  /^\s*customer\s*name\s*:/i,
+  /^\s*customer\s*:/i,
+  /^\s*name\s*:/i,
+];
+
 @Injectable()
 export class CustomerOrdersService {
   private readonly s3: S3Client;
@@ -77,6 +83,36 @@ export class CustomerOrdersService {
     return order;
   }
 
+  private async getRawOrder(id: string): Promise<CustomerOrder> {
+    const order = await this.orderRepo.findOne({
+      where: { id },
+      relations: ['items', 'warehouse'],
+    });
+    if (!order) throw new NotFoundException(`Customer order ${id} not found`);
+    return order;
+  }
+
+  private extractCustomerName(lines: Block[]): string | undefined {
+    for (const pattern of CUSTOMER_NAME_LABEL_PATTERNS) {
+      const lineIndex = lines.findIndex((l) => pattern.test(l.Text ?? ''));
+      if (lineIndex === -1) continue;
+
+      const labelLine = lines[lineIndex];
+      const inlineValue = (labelLine.Text ?? '').replace(pattern, '').trim();
+
+      if (inlineValue) {
+        return inlineValue;
+      }
+
+      const nextLine = lines[lineIndex + 1];
+      const nextValue = nextLine?.Text?.trim();
+      if (nextValue) {
+        return nextValue;
+      }
+    }
+    return undefined;
+  }
+
   private async resolveReviewerId(
     cognitoSub?: string,
   ): Promise<string | undefined> {
@@ -97,11 +133,7 @@ export class CustomerOrdersService {
   }
 
   async findOne(id: string): Promise<CustomerOrder> {
-    const order = await this.orderRepo.findOne({
-      where: { id },
-      relations: ['items', 'warehouse'],
-    });
-    if (!order) throw new NotFoundException(`Customer order ${id} not found`);
+    const order = await this.getRawOrder(id);
     return this.withPresignedUrl(order);
   }
 
@@ -216,14 +248,8 @@ export class CustomerOrdersService {
         lowConfidenceFields.push('No product/quantity table detected in this document');
       }
 
-      let extractedCustomerName: string | undefined;
       const lines = blocks.filter((b) => b.BlockType === 'LINE');
-      const customerLine = lines.find((l) =>
-        (l.Text ?? '').toLowerCase().includes('customer'),
-      );
-      if (customerLine?.Text) {
-        extractedCustomerName = customerLine.Text.replace(/customer:?/i, '').trim() || undefined;
-      }
+      const extractedCustomerName = this.extractCustomerName(lines);
 
       order.extractedCustomerName = extractedCustomerName;
       order = await this.orderRepo.save(order);
@@ -269,8 +295,18 @@ export class CustomerOrdersService {
     return this.itemRepo.save(item);
   }
 
+  async updateCustomerName(
+    id: string,
+    extractedCustomerName: string,
+  ): Promise<CustomerOrder> {
+    const order = await this.getRawOrder(id);
+    order.extractedCustomerName = extractedCustomerName;
+    const saved = await this.orderRepo.save(order);
+    return this.withPresignedUrl(saved);
+  }
+
   async confirm(id: string, reviewerCognitoSub?: string): Promise<CustomerOrder> {
-    const order = await this.findOne(id);
+    const order = await this.getRawOrder(id);
     if (order.status !== CustomerOrderStatus.PENDING) {
       throw new BadRequestException(
         `Only pending orders can be confirmed (current: "${order.status}")`,
@@ -286,7 +322,7 @@ export class CustomerOrdersService {
 
     const reviewerId = await this.resolveReviewerId(reviewerCognitoSub);
 
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       for (const item of order.items) {
         if (!item.matchedProductId) continue;
 
@@ -332,10 +368,12 @@ export class CustomerOrdersService {
       order.reviewedBy = reviewerId;
       return manager.save(order);
     });
+
+    return this.withPresignedUrl(saved);
   }
 
   async deliver(id: string): Promise<CustomerOrder> {
-    const order = await this.findOne(id);
+    const order = await this.getRawOrder(id);
     if (order.status !== CustomerOrderStatus.CONFIRMED) {
       throw new BadRequestException(
         `Only confirmed orders can be delivered (current: "${order.status}")`,
@@ -405,11 +443,11 @@ export class CustomerOrdersService {
       }
     }
 
-    return savedOrder;
+    return this.withPresignedUrl(savedOrder);
   }
 
   async reject(id: string, reviewerCognitoSub?: string): Promise<CustomerOrder> {
-    const order = await this.findOne(id);
+    const order = await this.getRawOrder(id);
 
     if (
       order.status !== CustomerOrderStatus.PENDING &&
@@ -422,7 +460,7 @@ export class CustomerOrdersService {
 
     const reviewerId = await this.resolveReviewerId(reviewerCognitoSub);
 
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       if (order.status === CustomerOrderStatus.CONFIRMED) {
         for (const item of order.items) {
           const allocations = await manager.find(CustomerOrderItemAllocation, {
@@ -454,10 +492,12 @@ export class CustomerOrdersService {
       order.reviewedBy = reviewerId;
       return manager.save(order);
     });
+
+    return this.withPresignedUrl(saved);
   }
 
   async remove(id: string): Promise<void> {
-    const order = await this.findOne(id);
+    const order = await this.getRawOrder(id);
     await this.orderRepo.remove(order);
   }
 }

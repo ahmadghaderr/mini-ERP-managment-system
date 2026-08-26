@@ -56,6 +56,18 @@ export async function matchCustomerOrderItem(
   return response.data;
 }
 
+export async function updateCustomerOrderName(
+  orderId: string,
+  extractedCustomerName: string,
+): Promise<CustomerOrder> {
+  const response = await axios.patch(
+    `${API_BASE}/customer-orders/${orderId}/customer-name`,
+    { extractedCustomerName },
+    { headers: authHeaders() },
+  );
+  return response.data;
+}
+
 export async function confirmCustomerOrder(id: string): Promise<CustomerOrder> {
   const response = await axios.patch(
     `${API_BASE}/customer-orders/${id}/confirm`,

@@ -53,6 +53,15 @@ export class CustomerOrdersController {
     return this.service.matchItem(orderId, itemId, dto.matchedProductId);
   }
 
+  @Roles('admin', 'manager', 'staff')
+  @Patch(':id/customer-name')
+  updateCustomerName(
+    @Param('id') id: string,
+    @Body('extractedCustomerName') extractedCustomerName: string,
+  ) {
+    return this.service.updateCustomerName(id, extractedCustomerName);
+  }
+
   @Roles('admin', 'manager')
   @Patch(':id/confirm')
   confirm(@Param('id') id: string, @Req() req: RequestWithUser) {

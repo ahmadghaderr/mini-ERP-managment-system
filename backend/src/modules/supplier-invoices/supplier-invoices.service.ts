@@ -90,6 +90,17 @@ export class SupplierInvoicesService {
     return invoice;
   }
 
+  private async getRawInvoice(id: string): Promise<SupplierInvoice> {
+    const invoice = await this.invoiceRepo.findOne({
+      where: { id },
+      relations: ["items", "warehouse"],
+    });
+    if (!invoice) {
+      throw new NotFoundException(`Supplier invoice ${id} not found`);
+    }
+    return invoice;
+  }
+
   private async resolveReviewerId(
     cognitoSub?: string,
   ): Promise<string | undefined> {
@@ -305,13 +316,7 @@ export class SupplierInvoicesService {
   }
 
   async findOne(id: string): Promise<SupplierInvoice> {
-    const invoice = await this.invoiceRepo.findOne({
-      where: { id },
-      relations: ["items", "warehouse"],
-    });
-    if (!invoice) {
-      throw new NotFoundException(`Supplier invoice ${id} not found`);
-    }
+    const invoice = await this.getRawInvoice(id);
     return this.withPresignedUrl(invoice);
   }
 
@@ -484,11 +489,28 @@ export class SupplierInvoicesService {
     return this.itemRepo.save(item);
   }
 
+  async updateItemPrice(
+    invoiceId: string,
+    itemId: string,
+    unitPrice: number,
+  ): Promise<SupplierInvoiceItem> {
+    const item = await this.itemRepo.findOne({
+      where: { id: itemId, supplierInvoiceId: invoiceId },
+    });
+    if (!item) {
+      throw new NotFoundException(
+        `Item ${itemId} not found on invoice ${invoiceId}`,
+      );
+    }
+    item.unitPrice = unitPrice;
+    return this.itemRepo.save(item);
+  }
+
   async confirm(
     id: string,
     reviewerCognitoSub?: string,
   ): Promise<{ invoice: SupplierInvoice; calendarEvent: CalendarEventResult }> {
-    const invoice = await this.findOne(id);
+    const invoice = await this.getRawInvoice(id);
 
     if (
       invoice.status !== SupplierInvoiceStatus.EXTRACTED &&
@@ -512,22 +534,24 @@ export class SupplierInvoicesService {
     const saved = await this.invoiceRepo.save(invoice);
 
     const calendarEvent = await this.invokeEventAgent(saved);
+    const withUrl = await this.withPresignedUrl(saved);
 
-    return { invoice: saved, calendarEvent };
+    return { invoice: withUrl, calendarEvent };
   }
 
   async reject(
     id: string,
     reviewerCognitoSub?: string,
   ): Promise<SupplierInvoice> {
-    const invoice = await this.findOne(id);
+    const invoice = await this.getRawInvoice(id);
     invoice.status = SupplierInvoiceStatus.REJECTED;
     invoice.reviewedBy = await this.resolveReviewerId(reviewerCognitoSub);
-    return this.invoiceRepo.save(invoice);
+    const saved = await this.invoiceRepo.save(invoice);
+    return this.withPresignedUrl(saved);
   }
 
   async deliver(id: string): Promise<SupplierInvoice> {
-    const invoice = await this.findOne(id);
+    const invoice = await this.getRawInvoice(id);
 
     if (invoice.status !== SupplierInvoiceStatus.CONFIRMED) {
       throw new BadRequestException(
@@ -535,7 +559,7 @@ export class SupplierInvoicesService {
       );
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       for (const item of invoice.items) {
         if (!item.matchedProductId) continue;
 
@@ -571,10 +595,12 @@ export class SupplierInvoicesService {
       invoice.deliveredAt = new Date();
       return manager.save(invoice);
     });
+
+    return this.withPresignedUrl(saved);
   }
 
   async remove(id: string): Promise<void> {
-    const invoice = await this.findOne(id);
+    const invoice = await this.getRawInvoice(id);
     await this.invoiceRepo.remove(invoice);
   }
 }

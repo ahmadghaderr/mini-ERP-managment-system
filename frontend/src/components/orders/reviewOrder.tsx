@@ -7,6 +7,7 @@ import type { Product } from "../../types/product";
 import {
   fetchCustomerOrder,
   matchCustomerOrderItem,
+  updateCustomerOrderName,
   confirmCustomerOrder,
   deliverCustomerOrder,
   rejectCustomerOrder,
@@ -25,6 +26,10 @@ export default function OrderReview() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -88,6 +93,34 @@ export default function OrderReview() {
       });
     } catch (err) {
       setActionError(getApiErrorMessage(err));
+    }
+  }
+
+  function startEditName() {
+    if (!order) return;
+    setNameDraft(order.extractedCustomerName ?? "");
+    setEditingName(true);
+  }
+
+  function cancelEditName() {
+    setEditingName(false);
+  }
+
+  async function handleSaveName() {
+    if (!order) return;
+    const trimmed = nameDraft.trim();
+    if (!trimmed) return;
+
+    setSavingName(true);
+    setActionError(null);
+    try {
+      const updated = await updateCustomerOrderName(order.id, trimmed);
+      setOrder(updated);
+      setEditingName(false);
+    } catch (err) {
+      setActionError(getApiErrorMessage(err));
+    } finally {
+      setSavingName(false);
     }
   }
 
@@ -182,9 +215,58 @@ export default function OrderReview() {
       <div className="ord-pg-head">
         <div>
           <h1 className="ord-pg-title">Review order</h1>
-          <p className="ord-subtext">
-            {order.extractedCustomerName ?? "Unknown customer"}
-          </p>
+          {editingName ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+              <input
+                className="ord-input ord-input--sm"
+                style={{ maxWidth: 240 }}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                autoFocus
+                disabled={savingName}
+              />
+              <button
+                className="ord-btn ord-btn--primary"
+                style={{ padding: "6px 14px", minHeight: 32 }}
+                disabled={savingName || !nameDraft.trim()}
+                onClick={handleSaveName}
+              >
+                Save
+              </button>
+              <button
+                className="ord-btn ord-btn--ghost"
+                style={{ padding: "6px 14px", minHeight: 32 }}
+                disabled={savingName}
+                onClick={cancelEditName}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <p
+              className="ord-subtext"
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
+            >
+              {order.extractedCustomerName ?? "Unknown customer"}
+              {isMatchable && (
+                <button
+                  onClick={startEditName}
+                  aria-label="Edit customer name"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#3ab5cc",
+                    fontWeight: 600,
+                    fontSize: 12,
+                    padding: 0,
+                  }}
+                >
+                  Edit
+                </button>
+              )}
+            </p>
+          )}
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button className="ord-btn ord-btn--ghost" onClick={handleBack}>
@@ -350,4 +432,4 @@ export default function OrderReview() {
       </div>
     </div>
   );
-}
+} 

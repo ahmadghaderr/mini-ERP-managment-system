@@ -11,6 +11,7 @@ import type { Product } from "../../types/product";
 import {
   fetchSupplierInvoice,
   matchSupplierInvoiceItem,
+  updateSupplierInvoiceItemPrice,
   confirmSupplierInvoice,
   rejectSupplierInvoice,
   deliverSupplierInvoice,
@@ -158,6 +159,39 @@ export default function Review() {
           it.id === item.id ? { ...it, matchedProductId } : it,
         ),
       });
+    } catch (err) {
+      setActionError(getApiErrorMessage(err));
+    }
+  }
+
+  function handlePriceInputChange(item: SupplierInvoiceItem, value: string) {
+    if (!invoice) return;
+    const numeric = value === "" ? null : Number(value);
+    setInvoice({
+      ...invoice,
+      items: invoice.items.map((it) =>
+        it.id === item.id ? { ...it, unitPrice: numeric } : it,
+      ),
+    });
+  }
+
+  async function handlePriceBlur(item: SupplierInvoiceItem) {
+    if (!invoice) return;
+    const current = invoice.items.find((it) => it.id === item.id);
+    if (
+      !current ||
+      current.unitPrice == null ||
+      Number.isNaN(Number(current.unitPrice))
+    )
+      return;
+
+    setActionError(null);
+    try {
+      await updateSupplierInvoiceItemPrice(
+        invoice.id,
+        item.id,
+        Number(current.unitPrice),
+      );
     } catch (err) {
       setActionError(getApiErrorMessage(err));
     }
@@ -410,9 +444,9 @@ export default function Review() {
         >
           <table className="inv-tbl">
             <colgroup>
-              <col style={{ width: "30%" }} />
+              <col style={{ width: "28%" }} />
               <col style={{ width: "10%" }} />
-              <col style={{ width: "18%" }} />
+              <col style={{ width: "20%" }} />
               <col style={{ width: "42%" }} />
             </colgroup>
             <thead>
@@ -441,9 +475,23 @@ export default function Review() {
                     </td>
                     <td>{it.quantity}</td>
                     <td>
-                      {unitPriceNum != null && !Number.isNaN(unitPriceNum)
-                        ? `$${unitPriceNum.toFixed(2)}`
-                        : "—"}
+                      {isReviewable ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="inv-input inv-input--sm"
+                          value={unitPriceNum ?? ""}
+                          onChange={(e) =>
+                            handlePriceInputChange(it, e.target.value)
+                          }
+                          onBlur={() => handlePriceBlur(it)}
+                        />
+                      ) : unitPriceNum != null && !Number.isNaN(unitPriceNum) ? (
+                        `$${unitPriceNum.toFixed(2)}`
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td>
                       <select
