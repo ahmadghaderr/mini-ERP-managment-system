@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { UserList } from "./userList";
 import PageLoader from "../shared/PageLoader";
 import UserModal from "./userModal";
@@ -7,6 +8,7 @@ import { fetchUsers, createUser, updateUser, deleteUser } from "../../services/u
 import type { User, CreateUserPayload } from "../../types/user";
 
 export default function Users() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -58,20 +60,20 @@ export default function Users() {
   }
 
   async function handleDeleteUser(id: string) {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    if (!window.confirm(t("users.deleteConfirm"))) return;
     await deleteUser(id);
     loadUsers();
   }
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="usr-pg">
       <div className="usr-pg-head">
         <div className="usr-pg-head-left">
-          <h1 className="usr-pg-title">Users</h1>
+          <h1 className="usr-pg-title">{t("users.title")}</h1>
         </div>
         <div className="usr-pg-head-right">
           <button className="usr-btn usr-btn--primary" onClick={handleAddUser}>
@@ -79,7 +81,7 @@ export default function Users() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add User
+            {t("users.addButton")}
           </button>
         </div>
       </div>

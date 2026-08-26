@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { submitAccessRequest } from '../../services/accessRequests-service';
 import './access-requests.css';
 
 export default function RequestAccess() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -19,7 +21,7 @@ export default function RequestAccess() {
       await submitAccessRequest(email);
       setSubmitted(true);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t('accessRequests.genericError'));
     } finally {
       setLoading(false);
     }
@@ -29,12 +31,12 @@ export default function RequestAccess() {
     return (
       <div className="acr-page">
         <div className="acr-card">
-          <h1 className="acr-title">Request sent</h1>
+          <h1 className="acr-title">{t('accessRequests.requestSentTitle')}</h1>
           <p className="acr-subtitle">
-            An admin will review your request. You'll receive an email with login details once approved.
+            {t('accessRequests.requestSentSubtitle')}
           </p>
           <Link to="/login" className="acr-link">
-            Back to login
+            {t('accessRequests.backToLogin')}
           </Link>
         </div>
       </div>
@@ -44,14 +46,14 @@ export default function RequestAccess() {
   return (
     <div className="acr-page">
       <div className="acr-card">
-        <h1 className="acr-title">Request Access</h1>
-        <p className="acr-subtitle">Enter your email — an admin will review and approve your account.</p>
+        <h1 className="acr-title">{t('accessRequests.requestAccessTitle')}</h1>
+        <p className="acr-subtitle">{t('accessRequests.requestAccessSubtitle')}</p>
 
         {error && <div className="acr-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="acr-field">
-            <label className="acr-label">Email</label>
+            <label className="acr-label">{t('accessRequests.fieldEmail')}</label>
             <input
               type="email"
               className="acr-input"
@@ -61,12 +63,12 @@ export default function RequestAccess() {
             />
           </div>
           <button type="submit" className="acr-button" disabled={loading}>
-            {loading ? 'Sending...' : 'Request Access'}
+            {loading ? t('accessRequests.sending') : t('accessRequests.requestAccessButton')}
           </button>
         </form>
 
         <Link to="/login" className="acr-link">
-          Already have an account? Log in
+          {t('accessRequests.alreadyHaveAccount')}
         </Link>
       </div>
     </div>

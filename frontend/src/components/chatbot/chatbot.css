@@ -425,3 +425,34 @@
   background: #d5e6ea;
   cursor: not-allowed;
 }
+[dir="rtl"] .chat-sidebar {
+  border-right: none;
+  border-left: 1px solid #eef1f3;
+}
+
+[dir="rtl"] .chat-session-item {
+  text-align: right;
+}
+
+[dir="rtl"] .chat-session-delete-btn {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .chat-row--user {
+  flex-direction: row;
+}
+
+[dir="rtl"] .chat-row--assistant {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .chat-msg--user {
+  border-bottom-right-radius: 16px;
+  border-bottom-left-radius: 4px;
+}
+
+[dir="rtl"] .chat-msg--assistant {
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 4px;
+}

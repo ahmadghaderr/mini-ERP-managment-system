@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { formatLocalDate } from "../../lib/formatDate";
 import { hasPermission } from "../permissions/permissions";
 import { decodeToken } from "../../lib/cognito";
 import PageLoader from "../shared/PageLoader";
@@ -8,6 +10,7 @@ import { fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } fr
 import "./warehouse.css";
 
 function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<CreateWarehousePayload>({
     warehouseName: warehouse?.warehouseName ?? "",
     warehouseLocation: warehouse?.warehouseLocation ?? "",
@@ -15,7 +18,7 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
 
   function handleSubmit() {
     if (!formData.warehouseName.trim() || !formData.warehouseLocation.trim()) {
-      alert("Please fill in all fields");
+      alert(t("warehouses.fillAllFields"));
       return;
     }
     onSave(formData);
@@ -26,9 +29,9 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
       <div className="wh-modal" onClick={(e) => e.stopPropagation()}>
         <div className="wh-modal-header">
           <div className="wh-modal-title">
-            {warehouse ? "Edit Warehouse" : "Add Warehouse"}
+            {warehouse ? t("warehouses.modalTitleEdit") : t("warehouses.modalTitleAdd")}
           </div>
-          <button className="wh-modal-close" onClick={onClose} aria-label="Close">
+          <button className="wh-modal-close" onClick={onClose} aria-label={t("common.close")}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -38,31 +41,31 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
 
         <div className="wh-modal-body">
           <div className="field">
-            <label>Warehouse Name</label>
+            <label>{t("warehouses.fieldName")}</label>
             <input
               className="input"
               value={formData.warehouseName}
               onChange={(e) => setFormData({ ...formData, warehouseName: e.target.value })}
-              placeholder="e.g. Main Warehouse"
+              placeholder={t("warehouses.fieldNamePlaceholder")}
             />
           </div>
           <div className="field">
-            <label>Location</label>
+            <label>{t("warehouses.fieldLocation")}</label>
             <input
               className="input"
               value={formData.warehouseLocation}
               onChange={(e) => setFormData({ ...formData, warehouseLocation: e.target.value })}
-              placeholder="e.g. Tripoli, LB"
+              placeholder={t("warehouses.fieldLocationPlaceholder")}
             />
           </div>
         </div>
 
         <div className="wh-modal-footer">
           <button className="btn btn--ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="btn btn--primary" onClick={handleSubmit}>
-            {warehouse ? "Save Changes" : "Create Warehouse"}
+            {warehouse ? t("warehouses.saveChanges") : t("warehouses.createButton")}
           </button>
         </div>
       </div>
@@ -71,6 +74,7 @@ function WarehouseModal({ warehouse, onSave, onClose }: WarehouseModalProps) {
 }
 
 export default function Warehouses() {
+  const { t, i18n } = useTranslation();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -125,19 +129,19 @@ export default function Warehouses() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this warehouse?")) return;
+    if (!confirm(t("warehouses.deleteConfirm"))) return;
     await deleteWarehouse(id);
     loadWarehouses();
   }
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="pg">
       <div className="pg-head">
-        <h1 className="pg-title">Warehouses</h1>
+        <h1 className="pg-title">{t("warehouses.title")}</h1>
       </div>
 
       <div className="pg-toolbar">
@@ -150,7 +154,7 @@ export default function Warehouses() {
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or location"
+            placeholder={t("warehouses.searchPlaceholder")}
           />
         </div>
 
@@ -160,7 +164,7 @@ export default function Warehouses() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add warehouse
+            {t("warehouses.addButton")}
           </button>
         )}
       </div>
@@ -169,10 +173,10 @@ export default function Warehouses() {
         <table className="tbl">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Location</th>
-              <th>Created</th>
-              {canManage && <th className="tbl-actions">Actions</th>}
+              <th>{t("warehouses.colName")}</th>
+              <th>{t("warehouses.colLocation")}</th>
+              <th>{t("warehouses.colCreated")}</th>
+              {canManage && <th className="tbl-actions">{t("warehouses.colActions")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -182,17 +186,17 @@ export default function Warehouses() {
                 <td>
                   <span className="loc-badge">{w.warehouseLocation}</span>
                 </td>
-                <td className="tbl-muted">{new Date(w.createdAt).toLocaleDateString()}</td>
-                                {canManage && (
+                <td className="tbl-muted">{formatLocalDate(w.createdAt, i18n.language)}</td>
+                {canManage && (
                   <td className="tbl-actions">
                     <button className="row-btn" onClick={() => handleEdit(w)}>
-                      Edit
+                      {t("common.edit")}
                     </button>
                     <button
                       className="row-btn row-btn--danger"
                       onClick={() => handleDelete(w.id)}
                     >
-                      Delete
+                      {t("common.delete")}
                     </button>
                   </td>
                 )}

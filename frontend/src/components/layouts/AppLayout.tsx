@@ -1,7 +1,9 @@
 import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getCurrentUser, logout } from '../../services/auth-service';
 import { hasPermission } from '../permissions/permissions';
+import PageLoader from '../shared/PageLoader';
 import type { NavItem, UserAvatarProps, UserSummaryProps } from '../../types/appLayout';
 import type { CurrentUser } from '../../types/user';
 import { clearSessionId } from '../../lib/chatSession';
@@ -21,6 +23,19 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/transfers', label: 'Transfers', requires: 'transfers:view' },
   { to: '/chat', label: 'Chatbot' },
 ];
+
+const NAV_LABEL_KEYS: Record<string, string> = {
+  '/dashboard': 'nav.dashboard',
+  '/warehouses': 'nav.warehouses',
+  '/products': 'nav.products',
+  '/inventory': 'nav.inventory',
+  '/ledger': 'nav.ledger',
+  '/invoices': 'nav.invoices',
+  '/orders': 'nav.orders',
+  '/transfers': 'nav.transfers',
+  '/users': 'nav.users',
+  '/chat': 'nav.chatbot',
+};
 
 const NAV_ICONS: Record<string, JSX.Element> = {
   '/dashboard': (
@@ -88,12 +103,13 @@ function UserAvatar({ name, variant }: UserAvatarProps) {
 }
 
 function UserSummary({ name, role, variant }: UserSummaryProps) {
+  const { t } = useTranslation();
   const nameClass = variant === 'sidebar' ? 'sidebar-user-name' : 'topbar-user-name';
   const roleClass = variant === 'sidebar' ? 'sidebar-user-role' : 'topbar-user-role';
   return (
     <>
       <span className={nameClass}>{name ?? 'Unknown user'}</span>
-      <span className={roleClass}>{role}</span>
+      <span className={roleClass}>{t(`users.roles.${role.toLowerCase()}`, role)}</span>
     </>
   );
 }
@@ -102,6 +118,7 @@ export default function AppLayout() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     getCurrentUser()
@@ -117,7 +134,7 @@ export default function AppLayout() {
   }, [user]);
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading...</div>;
+    return <PageLoader />;
   }
 
   if (!user) {
@@ -130,6 +147,11 @@ export default function AppLayout() {
     logout();
     clearSessionId();
     navigate('/login');
+  }
+
+  function toggleLanguage() {
+    const newLang = i18n.language === 'ar' ? 'en' : 'ar';
+    i18n.changeLanguage(newLang);
   }
 
   const visibleNavItems = NAV_ITEMS.filter((item) => !item.requires || hasPermission(role, item.requires));
@@ -159,7 +181,7 @@ export default function AppLayout() {
               className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
             >
               <span className="sidebar-link-icon">{NAV_ICONS[item.to]}</span>
-              {item.label}
+              {t(NAV_LABEL_KEYS[item.to] ?? item.label)}
             </NavLink>
           ))}
         </nav>
@@ -179,12 +201,15 @@ export default function AppLayout() {
           <div className="topbar-left">
           </div>
           <div className="topbar-right">
+            <button className="topbar-lang-toggle" onClick={toggleLanguage}>
+              {i18n.language === 'ar' ? 'EN' : 'العربية'}
+            </button>
             <div className="topbar-user">
               <UserAvatar name={user.userName} variant="topbar" />
               <div className="topbar-user-info">
                 <UserSummary name={user.userName} role={user.role} variant="topbar" />
               </div>
-              <button className="topbar-logout" onClick={handleLogout}>Logout</button>
+              <button className="topbar-logout" onClick={handleLogout}>{t('common.logout')}</button>
             </div>
           </div>
         </header>

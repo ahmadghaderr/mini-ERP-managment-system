@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
 import { useNavigate } from "react-router-dom";
 import "./invoices.css";
 import type { SupplierInvoice, SupplierInvoiceStatus } from "../../types/supplierInvoice";
 import { fetchSupplierInvoices } from "../../services/invoice-service";
+
 
 const STATUSES: (SupplierInvoiceStatus | "all")[] = [
   "all",
@@ -15,6 +17,7 @@ const STATUSES: (SupplierInvoiceStatus | "all")[] = [
 ];
 
 export default function List() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,14 +48,14 @@ export default function List() {
   );
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
-          <h1 className="inv-pg-title">Supplier Invoices</h1>
+          <h1 className="inv-pg-title">{t("invoices.title")}</h1>
         </div>
         <button className="inv-btn inv-btn--primary" onClick={handleUpload}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -60,7 +63,7 @@ export default function List() {
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Upload invoice
+          {t("invoices.uploadButton")}
         </button>
       </div>
 
@@ -74,7 +77,7 @@ export default function List() {
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by supplier"
+            placeholder={t("invoices.searchPlaceholder")}
           />
         </div>
         <select
@@ -86,7 +89,7 @@ export default function List() {
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s === "all" ? "All statuses" : s.replaceAll("_", " ")}
+              {s === "all" ? t("invoices.allStatuses") : t(`invoices.statuses.${s}`)}
             </option>
           ))}
         </select>
@@ -96,11 +99,11 @@ export default function List() {
         <table className="inv-tbl">
           <thead>
             <tr>
-              <th>Supplier</th>
-              <th>Invoice date</th>
-              <th>Delivery date</th>
-              <th>Warehouse</th>
-              <th>Status</th>
+              <th>{t("invoices.colSupplier")}</th>
+              <th>{t("invoices.colInvoiceDate")}</th>
+              <th>{t("invoices.colDeliveryDate")}</th>
+              <th>{t("invoices.colWarehouse")}</th>
+              <th>{t("invoices.colStatus")}</th>
               <th style={{ width: 90 }}></th>
             </tr>
           </thead>
@@ -108,7 +111,7 @@ export default function List() {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: "center", padding: 24 }}>
-                  No invoices found.
+                  {t("invoices.noInvoicesFound")}
                 </td>
               </tr>
             ) : (
@@ -125,7 +128,7 @@ export default function List() {
                         "-"
                       )}`}
                     >
-                      {inv.status.replaceAll("_", " ")}
+                      {t(`invoices.statuses.${inv.status}`)}
                     </span>
                   </td>
                   <td>
@@ -133,7 +136,7 @@ export default function List() {
                       className="inv-btn inv-btn--ghost"
                       onClick={() => handleReview(inv.id)}
                     >
-                      Review
+                      {t("invoices.reviewButton")}
                     </button>
                   </td>
                 </tr>

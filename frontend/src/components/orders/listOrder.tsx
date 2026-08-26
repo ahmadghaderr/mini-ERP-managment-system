@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import PageLoader from "../shared/PageLoader";
 import "./orders.css";
 import type { CustomerOrder, CustomerOrderStatus } from "../../types/order";
 import { fetchCustomerOrders } from "../../services/customerOrder-service";
+import { formatLocalDate } from "../../lib/formatDate";
+import i18n from "../../i18n/config";
 
 const STATUSES: (CustomerOrderStatus | "all")[] = [
   "all",
@@ -18,6 +21,7 @@ interface ListProps {
 }
 
 export default function List({ onUploadClick }: ListProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +58,7 @@ export default function List({ onUploadClick }: ListProps) {
         .includes(search.toLowerCase()),
   );
 
-   if (loading) {
+  if (loading) {
     return <PageLoader />;
   }
 
@@ -66,7 +70,7 @@ export default function List({ onUploadClick }: ListProps) {
     <div className="ord-pg">
       <div className="ord-pg-head">
         <div>
-          <h1 className="ord-pg-title">Customer Orders</h1>
+          <h1 className="ord-pg-title">{t("orders.title")}</h1>
         </div>
         <button className="ord-btn ord-btn--primary" onClick={handleUpload}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -74,7 +78,7 @@ export default function List({ onUploadClick }: ListProps) {
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Upload order
+          {t("orders.uploadButton")}
         </button>
       </div>
 
@@ -88,7 +92,7 @@ export default function List({ onUploadClick }: ListProps) {
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by customer"
+            placeholder={t("orders.searchPlaceholder")}
           />
         </div>
         <select
@@ -98,7 +102,7 @@ export default function List({ onUploadClick }: ListProps) {
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s === "all" ? "All statuses" : s}
+              {s === "all" ? t("orders.allStatuses") : t(`orders.statuses.${s}`)}
             </option>
           ))}
         </select>
@@ -108,11 +112,11 @@ export default function List({ onUploadClick }: ListProps) {
         <table className="ord-tbl">
           <thead>
             <tr>
-              <th>Customer</th>
-              <th>Uploaded</th>
-              <th>Delivered</th>
-              <th>Warehouse</th>
-              <th>Status</th>
+              <th>{t("orders.colCustomer")}</th>
+              <th>{t("orders.colUploaded")}</th>
+              <th>{t("orders.colDelivered")}</th>
+              <th>{t("orders.colWarehouse")}</th>
+              <th>{t("orders.colStatus")}</th>
               <th style={{ width: 90 }}></th>
             </tr>
           </thead>
@@ -120,23 +124,23 @@ export default function List({ onUploadClick }: ListProps) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: "center", padding: 24 }}>
-                  No orders found.
+                  {t("orders.noOrdersFound")}
                 </td>
               </tr>
             ) : (
               rows.map((order) => (
                 <tr key={order.id}>
-                  <td>{order.extractedCustomerName ?? "Unknown customer"}</td>
-                  <td>{new Date(order.uploadedAt).toLocaleDateString()}</td>
+                  <td>{order.extractedCustomerName ?? t("orders.unknownCustomer")}</td>
+                  <td>{formatLocalDate(order.uploadedAt, i18n.language)}</td>
                   <td>
                     {order.deliveredAt
-                      ? new Date(order.deliveredAt).toLocaleDateString()
+                      ? formatLocalDate(order.deliveredAt, i18n.language)
                       : "—"}
                   </td>
                   <td>{order.warehouse?.warehouseName ?? "—"}</td>
                   <td>
                     <span className={`ord-badge ord-badge--${order.status}`}>
-                      {order.status}
+                      {t(`orders.statuses.${order.status}`)}
                     </span>
                   </td>
                   <td>
@@ -144,7 +148,7 @@ export default function List({ onUploadClick }: ListProps) {
                       className="ord-btn ord-btn--ghost"
                       onClick={() => navigate(`/orders/${order.id}`)}
                     >
-                      Review
+                      {t("orders.reviewButton")}
                     </button>
                   </td>
                 </tr>

@@ -345,3 +345,40 @@ h2, h3 {
     transform: rotate(360deg);
   }
 }
+
+/* ============================================
+   CENTRALIZED RTL OVERRIDES
+   ============================================ */
+
+[dir="rtl"] .search-icon {
+  left: auto;
+  right: 14px;
+}
+
+[dir="rtl"] .search-input {
+  padding: 10px 40px 10px 14px;
+}
+
+[dir="rtl"] .row-btn {
+  margin-right: 0;
+  margin-left: 6px;
+}
+
+[dir="rtl"] .tbl th,
+[dir="rtl"] .tbl td,
+[dir="rtl"] .inv-tbl th,
+[dir="rtl"] .inv-tbl td,
+[dir="rtl"] .ord-tbl th,
+[dir="rtl"] .ord-tbl td,
+[dir="rtl"] .stk-tbl th,
+[dir="rtl"] .stk-tbl td,
+[dir="rtl"] .usr-tbl th,
+[dir="rtl"] .usr-tbl td,
+[dir="rtl"] .acr-tbl th,
+[dir="rtl"] .acr-tbl td {
+  text-align: right;
+}
+
+[dir="rtl"] .tbl-actions {
+  text-align: left;
+}

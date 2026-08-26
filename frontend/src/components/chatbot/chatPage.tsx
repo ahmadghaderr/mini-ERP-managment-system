@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./chatbot.css";
 import MarkdownMessage from "./MarkdownMessage";
 import {
@@ -10,12 +11,15 @@ import {
 } from "../../services/chatbot-service";
 import { getApiErrorMessage } from "../../lib/apiError";
 import type { ChatSession, ChatMessage } from "../../types/chatbot";
+import i18n from "../../i18n/config";
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function formatTime(iso: string, language: string): string {
+  const locale = language === "ar" ? "ar-LB-u-nu-latn" : "en-US";
+  return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function ChatPage() {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -165,14 +169,14 @@ export default function ChatPage() {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          New session
+          {t("chatbot.newSession")}
         </button>
 
         <div className="chat-session-list">
           {loadingSessions ? (
-            <div className="chat-session-empty">Loading...</div>
+            <div className="chat-session-empty">{t("common.loading")}...</div>
           ) : sessions.length === 0 ? (
-            <div className="chat-session-empty">No conversations yet.</div>
+            <div className="chat-session-empty">{t("chatbot.noConversations")}</div>
           ) : (
             sessions.map((s) => (
               <div
@@ -183,7 +187,7 @@ export default function ChatPage() {
                 onClick={() => setActiveSessionId(s.id)}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="chat-session-item-icon">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 00 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                 </svg>
                 <span className="chat-session-item-title">{s.title}</span>
                 <button
@@ -210,7 +214,7 @@ export default function ChatPage() {
           <div className="chat-header">
             <div className="chat-header-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
               </svg>
             </div>
             <div className="chat-header-title">{activeSession.title}</div>
@@ -224,19 +228,19 @@ export default function ChatPage() {
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="chat-no-session-icon">
               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
             </svg>
-            <p>Select a conversation, or start a new one.</p>
+            <p>{t("chatbot.selectOrStart")}</p>
           </div>
         ) : (
           <>
             <div className="chat-messages-area" ref={scrollRef}>
               {loadingMessages ? (
-                <div className="chat-session-empty">Loading messages...</div>
+                <div className="chat-session-empty">{t("chatbot.loadingMessages")}</div>
               ) : messages.length === 0 ? (
                 <div className="chat-empty-conversation">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="chat-empty-icon">
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.380 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                   </svg>
-                  <p>Ask me anything about warehouses, products, orders, or invoices.</p>
+                  <p>{t("chatbot.askAnything")}</p>
                 </div>
               ) : (
                 messages.map((m) => (
@@ -249,7 +253,7 @@ export default function ChatPage() {
                         <MarkdownMessage text={m.text} />
                       </div>
                       <span className={`chat-msg-time chat-msg-time--${m.role}`}>
-                        {formatTime(m.createdAt)}
+                        {formatTime(m.createdAt, i18n.language)}
                       </span>
                     </div>
                     {m.role === "user" && (
@@ -279,7 +283,7 @@ export default function ChatPage() {
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder={t("chatbot.inputPlaceholder")}
                 rows={1}
                 disabled={sending}
               />

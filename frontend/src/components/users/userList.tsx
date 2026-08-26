@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import UserRow from "./userRow";
 import "./users.css";
 import type { UserListProps } from "../../types/user";
@@ -13,10 +14,11 @@ export function UserList({
   filterRole,
   onFilterRoleChange,
 }: UserListProps) {
+  const { t } = useTranslation();
   return (
     <div className="usr-card">
       <div className="usr-card-header">
-        <div className="usr-card-title">All Users</div>
+        <div className="usr-card-title">{t("users.allUsers")}</div>
         <div className="usr-filters">
           <div className="search-wrap usr-search-wrap">
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -26,17 +28,17 @@ export function UserList({
             <input
               className="search-input"
               type="text"
-              placeholder="Search users..."
+              placeholder={t("users.searchPlaceholder")}
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
           <div className="usr-field">
             <select className="usr-select" value={filterRole} onChange={(e) => onFilterRoleChange(e.target.value)}>
-              <option value="">All Roles</option>
+              <option value="">{t("users.allRoles")}</option>
               {roles.map((role) => (
                 <option key={role} value={role}>
-                  {role}
+                  {t(`users.roles.${role}`)}
                 </option>
               ))}
             </select>
@@ -47,11 +49,11 @@ export function UserList({
         <table className="usr-tbl">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th>{t("users.colUser")}</th>
+              <th>{t("users.colEmail")}</th>
+              <th>{t("users.colRole")}</th>
+              <th>{t("users.colCreated")}</th>
+              <th>{t("users.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -59,9 +61,9 @@ export function UserList({
               <tr>
                 <td colSpan={5}>
                   <div className="usr-empty">
-                    <div className="usr-empty-title">No users found</div>
+                    <div className="usr-empty-title">{t("users.noUsersFound")}</div>
                     <div className="usr-empty-sub">
-                      {search || filterRole ? "Try adjusting your filters" : "Start by adding your first user"}
+                      {search || filterRole ? t("users.tryAdjustingFilters") : t("users.startByAdding")}
                     </div>
                   </div>
                 </td>

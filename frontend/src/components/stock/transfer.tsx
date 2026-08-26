@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
 import { useNavigate } from "react-router-dom";
 import "./stock.css";
@@ -9,6 +10,8 @@ import { decodeToken } from "../../lib/cognito";
 import type { Warehouse } from "../../types/warehouse";
 import type { Product } from "../../types/product";
 import type { WarehouseTransfer, CreateTransferPayload } from "../../types/stock";
+import { formatLocalDateTime } from "../../lib/formatDate";
+import i18n from "../../i18n/config";
 
 interface FormItem {
   productId: string;
@@ -35,6 +38,7 @@ function getErrorMessage(err: unknown, fallback: string): string {
 }
 
 export default function Transfer() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const handleBack = () => navigate(-1);
 
@@ -84,11 +88,11 @@ export default function Transfer() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (sourceId === destId) {
-      alert("Source and Destination warehouses must be different.");
+      alert(t("transfers.errorDifferentWarehouses"));
       return;
     }
     if (items.some((it) => !it.productId)) {
-      alert("Please select a product for every item.");
+      alert(t("transfers.errorSelectProduct"));
       return;
     }
 
@@ -113,7 +117,7 @@ export default function Transfer() {
       const hist = await fetchTransfers();
       setHistory(hist);
     } catch (err) {
-      alert(getErrorMessage(err, "Could not submit transfer."));
+      alert(getErrorMessage(err, t("transfers.errorCouldNotSubmit")));
     } finally {
       setSubmitting(false);
     }
@@ -124,17 +128,17 @@ export default function Transfer() {
     .slice(0, 8);
 
   if (loading) {
-       return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="stk-pg">
       <div className="stk-pg-head">
         <div>
-          <div className="stk-pg-title">Create Stock Transfer</div>
+          <div className="stk-pg-title">{t("transfers.title")}</div>
         </div>
         <button className="stk-btn stk-btn--ghost" onClick={handleBack}>
-          ← Back
+          ← {t("common.back")}
         </button>
       </div>
 
@@ -142,7 +146,7 @@ export default function Transfer() {
         <div className="stk-card stk-upload-card">
           <div className="stk-filters-row">
             <div className="stk-field">
-              <label>From Warehouse</label>
+              <label>{t("transfers.fromWarehouse")}</label>
               <select
                 className="stk-select"
                 value={sourceId}
@@ -156,7 +160,7 @@ export default function Transfer() {
               </select>
             </div>
             <div className="stk-field">
-              <label>To Warehouse</label>
+              <label>{t("transfers.toWarehouse")}</label>
               <select
                 className="stk-select"
                 value={destId}
@@ -173,7 +177,7 @@ export default function Transfer() {
 
           <div>
             <div className="stk-extracted-header">
-              <label style={{ fontWeight: 600 }}>Transfer Items</label>
+              <label style={{ fontWeight: 600 }}>{t("transfers.transferItems")}</label>
               <button
                 type="button"
                 className="stk-link-btn"
@@ -181,7 +185,7 @@ export default function Transfer() {
                   setItems([...items, { productId: products[0]?.id ?? "", quantity: 1 }])
                 }
               >
-                + Add Item
+                {t("transfers.addItem")}
               </button>
             </div>
 
@@ -199,27 +203,14 @@ export default function Transfer() {
                   ))}
                 </select>
 
-                                <input
+                <input
                   className="stk-input"
                   type="number"
                   min="1"
-                  value={item.quantity === 0 ? "" : item.quantity}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === "") {
-                      updateItem(idx, { quantity: 0 });
-                      return;
-                    }
-                    const parsed = parseInt(raw, 10);
-                    if (!isNaN(parsed)) {
-                      updateItem(idx, { quantity: parsed });
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!item.quantity || item.quantity < 1) {
-                      updateItem(idx, { quantity: 1 });
-                    }
-                  }}
+                  value={item.quantity}
+                  onChange={(e) =>
+                    updateItem(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })
+                  }
                 />
 
                 <button
@@ -236,10 +227,10 @@ export default function Transfer() {
           </div>
 
           <div className="stk-field">
-            <label>Notes</label>
+            <label>{t("transfers.notes")}</label>
             <input
               className="stk-input"
-              placeholder="Transfer remarks..."
+              placeholder={t("transfers.notesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -247,10 +238,10 @@ export default function Transfer() {
 
           <div className="stk-actions-row">
             <button type="submit" className="stk-btn stk-btn--primary" disabled={submitting}>
-              {submitting ? "Submitting..." : "Submit Transfer"}
+              {submitting ? t("transfers.submitting") : t("transfers.submitButton")}
             </button>
             <button type="button" className="stk-btn stk-btn--ghost" onClick={handleBack}>
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -258,35 +249,35 @@ export default function Transfer() {
 
       <div className="stk-card" style={{ marginTop: 24 }}>
         <div className="stk-card-header">
-          <div className="stk-card-title">Recent Transfer History</div>
+          <div className="stk-card-title">{t("transfers.recentHistory")}</div>
         </div>
         <div className="stk-tbl-wrap">
           <table className="stk-tbl stk-history-tbl">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Route</th>
-                <th>Date</th>
+                <th>{t("transfers.colProduct")}</th>
+                <th>{t("transfers.colQty")}</th>
+                <th>{t("transfers.colRoute")}</th>
+                <th>{t("transfers.colDate")}</th>
               </tr>
             </thead>
             <tbody>
               {recentHistory.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="stk-history-empty">
-                    No transfer history yet.
+                    {t("transfers.noHistory")}
                   </td>
                 </tr>
               ) : (
-                recentHistory.map((t) => (
-                  <tr key={t.id}>
-                    <td>{t.product?.productName ?? "—"}</td>
-                    <td style={{ fontWeight: 600 }}>{t.quantity}</td>
+                recentHistory.map((tr) => (
+                  <tr key={tr.id}>
+                    <td>{tr.product?.productName ?? "—"}</td>
+                    <td style={{ fontWeight: 600 }}>{tr.quantity}</td>
                     <td className="stk-history-route">
-                      {t.fromWarehouse?.warehouseName ?? "—"} → {t.toWarehouse?.warehouseName ?? "—"}
+                      {tr.fromWarehouse?.warehouseName ?? "—"} → {tr.toWarehouse?.warehouseName ?? "—"}
                     </td>
                     <td style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                      {new Date(t.createdAt).toLocaleString()}
+                      {formatLocalDateTime(tr.createdAt, i18n.language)}
                     </td>
                   </tr>
                 ))

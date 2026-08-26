@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import "./orders.css";
 import {
@@ -44,6 +45,7 @@ function findBestProductMatch(
 }
 
 export default function Order({ onBack }: OrderProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const handleBack = onBack ?? (() => navigate(-1));
 
@@ -129,7 +131,7 @@ export default function Order({ onBack }: OrderProps) {
 
   async function handleUpload() {
     if (!file) {
-      setError("Select a file before uploading.");
+      setError(t("orders.selectFileAlert"));
       return;
     }
     setStep("uploading");
@@ -205,7 +207,7 @@ export default function Order({ onBack }: OrderProps) {
 
   async function handleReject() {
     if (!order) return;
-    if (!confirm("Are you sure you want to reject this order?")) return;
+    if (!confirm(t("orders.rejectConfirmMsg"))) return;
     setSaving(true);
     setActionError(null);
     try {
@@ -229,14 +231,14 @@ export default function Order({ onBack }: OrderProps) {
     <div className="ord-pg">
       <div className="ord-pg-head">
         <div>
-          <h1 className="ord-pg-title">Create customer order</h1>
+          <h1 className="ord-pg-title">{t("orders.createOrderTitle")}</h1>
         </div>
         <button className="ord-btn ord-btn--ghost" onClick={handleBack}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          Back
+          {t("common.back")}
         </button>
       </div>
 
@@ -247,7 +249,7 @@ export default function Order({ onBack }: OrderProps) {
           <div className="ord-card ord-upload-card">
             {step === "idle" && (
               <div className="ord-field">
-                <label className="ord-label">Order Document</label>
+                <label className="ord-label">{t("orders.orderDocument")}</label>
                 <label
                   className={`ord-dropzone ${isDragging ? "ord-dropzone--active" : ""} ${
                     file ? "ord-dropzone--has-file" : ""
@@ -268,9 +270,9 @@ export default function Order({ onBack }: OrderProps) {
                     ) : (
                       <div>
                         <p className="ord-dropzone-text">
-                          <strong>Click to browse</strong> or drag & drop PDF here
+                          <strong>{t("orders.clickToBrowse")}</strong> {t("orders.dragDropHere")}
                         </p>
-                        <span className="ord-dropzone-hint">Supports PDF, PNG, JPG (Max 10MB)</span>
+                        <span className="ord-dropzone-hint">{t("orders.supportsFormats")}</span>
                       </div>
                     )}
                   </div>
@@ -278,7 +280,7 @@ export default function Order({ onBack }: OrderProps) {
 
                 {file && (
                   <button className="ord-btn ord-btn--primary ord-upload-btn" onClick={handleUpload}>
-                    Extract Order Data
+                    {t("orders.extractOrderData")}
                   </button>
                 )}
               </div>
@@ -288,8 +290,8 @@ export default function Order({ onBack }: OrderProps) {
           {step === "uploading" && (
             <div className="ord-card ord-loading-card">
               <div className="ord-spinner" />
-              <h3>Extracting requested items...</h3>
-              <p>Analyzing document for products and quantities.</p>
+              <h3>{t("orders.extractingItemsTitle")}</h3>
+              <p>{t("orders.extractingItemsSubtitle")}</p>
             </div>
           )}
 
@@ -297,6 +299,7 @@ export default function Order({ onBack }: OrderProps) {
             <div className="ord-card ord-extracted-card">
               <div className="ord-extracted-header">
                 <div>
+                  <h3>{t("orders.requestedItems")}</h3>
                   <h3>Requested Items</h3>
                   {editingName ? (
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
@@ -350,18 +353,18 @@ export default function Order({ onBack }: OrderProps) {
                   )}
                   <p className="ord-subtext">
                     {autoMatching
-                      ? "Auto-matching items to products..."
-                      : "Review matched products, adjust if needed, then confirm."}
+                      ? t("orders.autoMatching")
+                      : t("orders.reviewMatched")}
                   </p>
                 </div>
                 <span className="ord-badge ord-badge--extracted">
-                  {order.items.length} items found
+                  {order.items.length} {t("orders.itemsFound")}
                 </span>
               </div>
 
               {lowConfidenceFields.length > 0 && (
                 <div className="ord-banner">
-                  Low-confidence extraction on: {lowConfidenceFields.join(", ")}
+                  {t("orders.lowConfidenceExtraction")} {lowConfidenceFields.join(", ")}
                 </div>
               )}
 
@@ -375,10 +378,10 @@ export default function Order({ onBack }: OrderProps) {
                 <table className="ord-tbl">
                   <thead>
                     <tr>
-                      <th>Extracted name</th>
-                      <th style={{ width: 90 }}>Qty</th>
-                      <th style={{ width: 90 }}>Unit price</th>
-                      <th style={{ width: 200 }}>Matched product</th>
+                      <th>{t("orders.colExtractedName")}</th>
+                      <th style={{ width: 90 }}>{t("orders.colQty")}</th>
+                      <th style={{ width: 90 }}>{t("orders.colUnitPrice")}</th>
+                      <th style={{ width: 200 }}>{t("orders.colMatchedProduct")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -398,7 +401,7 @@ export default function Order({ onBack }: OrderProps) {
                             onChange={(e) => handleMatch(item.id, e.target.value)}
                           >
                             <option value="" disabled>
-                              Select product
+                              {t("orders.selectProduct")}
                             </option>
                             {products.map((p) => (
                               <option key={p.id} value={p.id}>
@@ -414,7 +417,7 @@ export default function Order({ onBack }: OrderProps) {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 0", fontWeight: 600 }}>
-                Total: ${totalPrice.toFixed(2)}
+                {t("orders.total")}: ${totalPrice.toFixed(2)}
               </div>
 
               <div className="ord-actions-row">
@@ -426,7 +429,7 @@ export default function Order({ onBack }: OrderProps) {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  Confirm Order
+                  {t("orders.confirmOrderButton")}
                 </button>
 
                 <button className="ord-btn ord-btn--danger" disabled={saving} onClick={handleReject}>
@@ -434,7 +437,7 @@ export default function Order({ onBack }: OrderProps) {
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
-                  Reject
+                  {t("common.reject")}
                 </button>
               </div>
             </div>
@@ -443,7 +446,7 @@ export default function Order({ onBack }: OrderProps) {
 
         <div className="ord-card ord-preview-card">
           <div className="ord-preview-header">
-            <h3>Document Preview</h3>
+            <h3>{t("orders.documentPreview")}</h3>
             {file && <span className="ord-file-badge">{file.name}</span>}
           </div>
           <div className="ord-preview-body">
@@ -455,7 +458,7 @@ export default function Order({ onBack }: OrderProps) {
               )
             ) : (
               <div className="ord-preview-placeholder">
-                <p>Upload a PDF to view preview here</p>
+                <p>{t("orders.uploadPlaceholder")}</p>
               </div>
             )}
           </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
 import { useNavigate, useParams } from "react-router-dom";
 import "./invoices.css";
@@ -48,6 +49,7 @@ function findBestProductMatch(
 }
 
 export default function Review() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -223,7 +225,7 @@ export default function Review() {
 
   async function handleReject() {
     if (!invoice) return;
-    if (!confirm("Are you sure you want to reject this invoice?")) return;
+    if (!confirm(t("invoices.rejectConfirmMsg"))) return;
     setSaving(true);
     setActionError(null);
     try {
@@ -252,11 +254,7 @@ export default function Review() {
 
   async function handleDelete() {
     if (!invoice) return;
-    if (
-      !confirm(
-        "Are you sure you want to delete this invoice? This action cannot be undone.",
-      )
-    )
+    if (!confirm(t("invoices.deleteConfirmMsg")))
       return;
 
     setSaving(true);
@@ -272,7 +270,7 @@ export default function Review() {
   }
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   if (loadError) {
@@ -291,9 +289,9 @@ export default function Review() {
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
-          <h1 className="inv-pg-title">Review invoice</h1>
+          <h1 className="inv-pg-title">{t("invoices.reviewTitle")}</h1>
           <p className="inv-pg-subtitle">
-            {invoice.extractedSupplierName ?? "Unknown supplier"}
+            {invoice.extractedSupplierName ?? t("invoices.unknownSupplier")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -309,7 +307,7 @@ export default function Review() {
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
-            Back
+            {t("common.back")}
           </button>
           {canApprove && (
             <button
@@ -335,7 +333,7 @@ export default function Review() {
                 <line x1="10" y1="11" x2="10" y2="17" />
                 <line x1="14" y1="11" x2="14" y2="17" />
               </svg>
-              Delete
+              {t("common.delete")}
             </button>
           )}
         </div>
@@ -362,10 +360,10 @@ export default function Review() {
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
           {autoMatching
-            ? "Auto-matching items to products..."
+            ? t("invoices.autoMatching")
             : confirming
-              ? "Confirming and creating calendar event — this may take a moment..."
-              : "Review matched products, adjust if needed, then confirm. Confirming accepts the extracted data only — stock is added later, when the shipment arrives (delivered)."}
+              ? t("invoices.confirmingMessage")
+              : t("invoices.reviewInstructions")}
         </div>
       )}
 
@@ -383,8 +381,7 @@ export default function Review() {
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
-          This invoice is confirmed. Click Deliver to add the stock to your
-          warehouse.
+          {t("invoices.confirmedMessage")}
         </div>
       )}
 
@@ -402,7 +399,7 @@ export default function Review() {
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
-          This invoice has already been {invoice.status.replaceAll("_", " ")}.
+          {t("invoices.alreadyStatus")} {t(`invoices.statuses.${invoice.status}`)}.
         </div>
       )}
 
@@ -433,7 +430,7 @@ export default function Review() {
             />
           ) : (
             <div style={{ padding: 24, textAlign: "center" }}>
-              No PDF preview available.
+              {t("invoices.noPdfPreview")}
             </div>
           )}
         </div>
@@ -451,10 +448,10 @@ export default function Review() {
             </colgroup>
             <thead>
               <tr>
-                <th>Extracted product</th>
-                <th>Qty</th>
-                <th>Unit price</th>
-                <th>Matched product</th>
+                <th>{t("invoices.colExtractedProduct")}</th>
+                <th>{t("invoices.colQty")}</th>
+                <th>{t("invoices.colUnitPrice")}</th>
+                <th>{t("invoices.colMatchedProduct")}</th>
               </tr>
             </thead>
             <tbody>
@@ -508,7 +505,7 @@ export default function Review() {
                         }
                       >
                         <option value="" disabled>
-                          Select product
+                          {t("invoices.selectProduct")}
                         </option>
                         {products.map((p) => (
                           <option key={p.id} value={p.id}>
@@ -542,7 +539,7 @@ export default function Review() {
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            {confirming ? "Confirming..." : "Confirm"}
+            {confirming ? t("invoices.confirming") : t("common.confirm")}
           </button>
           <button
             className="inv-btn inv-btn--danger"
@@ -560,7 +557,7 @@ export default function Review() {
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
-            Reject
+            {t("common.reject")}
           </button>
         </div>
       )}
@@ -584,7 +581,7 @@ export default function Review() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Deliver
+            {t("invoices.deliverButton")}
           </button>
           <button
             className="inv-btn inv-btn--danger"
@@ -602,15 +599,14 @@ export default function Review() {
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
-            Reject
+            {t("common.reject")}
           </button>
         </div>
       )}
 
       {isReviewable && !canApprove && (
         <p className="inv-subtext" style={{ marginTop: 20 }}>
-          Match each item to a product, then a manager can confirm or reject
-          this invoice.
+          {t("invoices.matchThenManager")}
         </p>
       )}
 
