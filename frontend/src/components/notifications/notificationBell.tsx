@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchMyNotifications } from "../../services/notifications-service";
+import {
+  fetchMyNotifications,
+  NOTIFICATIONS_CHANGED_EVENT,
+} from "../../services/notifications-service";
 import "./notifications.css";
 
 const POLL_INTERVAL_MS = 30000;
@@ -9,17 +12,21 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadCount();
-    const interval = setInterval(loadCount, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, []);
-
-  function loadCount() {
+  const loadCount = useCallback(() => {
     fetchMyNotifications()
       .then((data) => setUnreadCount(data.filter((n) => !n.isRead).length))
       .catch(() => {});
-  }
+  }, []);
+
+  useEffect(() => {
+    loadCount();
+    const interval = setInterval(loadCount, POLL_INTERVAL_MS);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, loadCount);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, loadCount);
+    };
+  }, [loadCount]);
 
   return (
     <button

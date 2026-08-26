@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PageLoader from "../shared/PageLoader";
 import { useNavigate, useParams } from "react-router-dom";
 import "./invoices.css";
+import CalendarEventModal from "./CalendarEventModal";
 import type {
   SupplierInvoice,
   SupplierInvoiceItem,
@@ -57,6 +58,10 @@ export default function Review() {
   const [saving, setSaving] = useState(false);
   const [autoMatching, setAutoMatching] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [calendarModal, setCalendarModal] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const idToken = localStorage.getItem("idToken");
   const tokenPayload = idToken ? decodeToken(idToken) : null;
@@ -165,22 +170,21 @@ export default function Review() {
     setActionError(null);
     try {
       const result = await confirmSupplierInvoice(invoice.id);
-      if (result.calendarEvent.success) {
-        alert(
-          `Invoice confirmed. Calendar event created.\n\n${result.calendarEvent.message}`,
-        );
-      } else {
-        alert(
-          `Invoice confirmed, but the calendar event could not be created.\n\n${result.calendarEvent.message}`,
-        );
-      }
-      navigate("/invoices");
+      setCalendarModal({
+        success: result.calendarEvent.success,
+        message: result.calendarEvent.message,
+      });
     } catch (err) {
       setActionError(getApiErrorMessage(err));
     } finally {
       setSaving(false);
       setConfirming(false);
     }
+  }
+
+  function handleCalendarModalClose() {
+    setCalendarModal(null);
+    navigate("/invoices");
   }
 
   async function handleReject() {
@@ -374,7 +378,7 @@ export default function Review() {
         <div
           className="inv-preview"
           style={{
-            flex: "1 1 450px",
+            flex: "1 1 400px",
             minHeight: "480px",
             padding: 0,
             overflow: "hidden",
@@ -402,9 +406,15 @@ export default function Review() {
 
         <div
           className="inv-card"
-          style={{ flex: "1 1 380px", height: "fit-content" }}
+          style={{ flex: "1.4 1 480px", height: "fit-content" }}
         >
           <table className="inv-tbl">
+            <colgroup>
+              <col style={{ width: "30%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "42%" }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Extracted product</th>
@@ -419,7 +429,16 @@ export default function Review() {
                   it.unitPrice != null ? Number(it.unitPrice) : null;
                 return (
                   <tr key={it.id}>
-                    <td>{it.extractedProductName}</td>
+                    <td
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={it.extractedProductName}
+                    >
+                      {it.extractedProductName}
+                    </td>
                     <td>{it.quantity}</td>
                     <td>
                       {unitPriceNum != null && !Number.isNaN(unitPriceNum)
@@ -429,10 +448,16 @@ export default function Review() {
                     <td>
                       <select
                         className="inv-select"
-                        style={{ width: 180 }}
                         value={it.matchedProductId ?? ""}
                         disabled={!isReviewable}
                         onChange={(e) => handleMatch(it, e.target.value)}
+                        title={
+                          it.matchedProductId
+                            ? products.find(
+                                (p) => p.id === it.matchedProductId,
+                              )?.productName
+                            : undefined
+                        }
                       >
                         <option value="" disabled>
                           Select product
@@ -539,6 +564,14 @@ export default function Review() {
           Match each item to a product, then a manager can confirm or reject
           this invoice.
         </p>
+      )}
+
+      {calendarModal && (
+        <CalendarEventModal
+          success={calendarModal.success}
+          message={calendarModal.message}
+          onClose={handleCalendarModalClose}
+        />
       )}
     </div>
   );
