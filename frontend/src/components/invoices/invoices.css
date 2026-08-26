@@ -721,3 +721,14 @@
     min-height: 260px;
   }
 }
+[dir="rtl"] .inv-tbl th:first-child,
+[dir="rtl"] .inv-tbl td:first-child {
+  padding-left: 16px;
+  padding-right: 22px;
+}
+
+[dir="rtl"] .inv-tbl th:last-child,
+[dir="rtl"] .inv-tbl td:last-child {
+  padding-right: 16px;
+  padding-left: 22px;
+}

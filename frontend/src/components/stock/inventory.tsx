@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./stock.css";
 import PageLoader from "../shared/PageLoader";
 import { fetchStockLevels, adjustStock } from "../../services/stock-service";
@@ -9,13 +10,14 @@ import type { Product } from "../../types/product";
 const PREVIEW_COUNT = 3;
 
 function StockTable({ rows, emptyMessage, emptyPadding }: StockTableProps) {
+  const { t } = useTranslation();
   return (
     <table className="stk-tbl">
       <thead>
         <tr>
-          <th>Product</th>
-          <th style={{ width: 90 }}>On Hand</th>
-          <th style={{ width: 90 }}>Reserved</th>
+          <th>{t("inventory.colProduct")}</th>
+          <th style={{ width: 90 }}>{t("inventory.colOnHand")}</th>
+          <th style={{ width: 90 }}>{t("inventory.colReserved")}</th>
         </tr>
       </thead>
       <tbody>
@@ -40,6 +42,7 @@ function StockTable({ rows, emptyMessage, emptyPadding }: StockTableProps) {
 }
 
 export default function Inventory() {
+  const { t } = useTranslation();
   const [stock, setStock] = useState<WarehouseStock[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,11 +144,11 @@ export default function Inventory() {
     const quantity = Number(addQuantity);
 
     if (!warehouseId || !addProductId) {
-      setAddError("Select a product and enter a quantity.");
+      setAddError(t("inventory.selectProductAndQuantity"));
       return;
     }
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      setAddError("Quantity must be a positive number.");
+      setAddError(t("inventory.quantityMustBePositive"));
       return;
     }
 
@@ -162,7 +165,7 @@ export default function Inventory() {
       setAddProductId("");
       setAddQuantity("");
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Could not add product.");
+      setAddError(err instanceof Error ? err.message : t("inventory.couldNotAddProduct"));
     } finally {
       setAddSaving(false);
     }
@@ -170,7 +173,7 @@ export default function Inventory() {
 
   const activeRows = activeWarehouse ? (rowsByWarehouse.get(activeWarehouse) ?? []) : [];
 
-    if (loading) {
+  if (loading) {
     return <PageLoader />;
   }
 
@@ -182,7 +185,7 @@ export default function Inventory() {
     <div className="stk-pg">
       <div className="stk-pg-head">
         <div>
-          <div className="stk-pg-title">Inventory</div>
+          <div className="stk-pg-title">{t("inventory.title")}</div>
         </div>
       </div>
 
@@ -196,7 +199,7 @@ export default function Inventory() {
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by product name"
+            placeholder={t("inventory.searchPlaceholder")}
           />
         </div>
       </div>
@@ -211,7 +214,7 @@ export default function Inventory() {
       >
         {warehouseNames.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center" }}>
-            No warehouse stock recorded yet.
+            {t("inventory.noWarehouseStock")}
           </div>
         ) : (
           warehouseNames.map((warehouse) => {
@@ -222,10 +225,10 @@ export default function Inventory() {
                 <div className="stk-card-header">
                   <div className="stk-card-title">{warehouse}</div>
                   <button className="stk-link-btn" onClick={() => setActiveWarehouse(warehouse)}>
-                    View all ({rows.length})
+                    {t("inventory.viewAll")} ({rows.length})
                   </button>
                 </div>
-                <StockTable rows={preview} emptyMessage="No stock records." emptyPadding={20} />
+                <StockTable rows={preview} emptyMessage={t("inventory.noStockRecords")} emptyPadding={20} />
               </div>
             );
           })
@@ -236,14 +239,14 @@ export default function Inventory() {
         <div className="stk-modal-overlay" onClick={closeModal}>
           <div className="stk-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640, width: "100%" }}>
             <div className="stk-modal-header">
-              <h3>{activeWarehouse} — Full Inventory</h3>
+              <h3>{activeWarehouse} — {t("inventory.fullInventory")}</h3>
               <button className="stk-modal-close" onClick={closeModal}>
                 &times;
               </button>
             </div>
 
             <div className="stk-modal-body" style={{ maxHeight: "65vh", overflowY: "auto" }}>
-              <StockTable rows={activeRows} emptyMessage="No stock records found." emptyPadding={24} />
+              <StockTable rows={activeRows} emptyMessage={t("inventory.noStockRecordsFound")} emptyPadding={24} />
 
               {showAddForm ? (
                 <div style={{ marginTop: 16, padding: 16, border: "1px solid #e2e2e2", borderRadius: 8 }}>
@@ -259,7 +262,7 @@ export default function Inventory() {
                       style={{ flex: "1 1 200px", padding: 8 }}
                     >
                       <option value="" disabled>
-                        Select product
+                        {t("inventory.selectProduct")}
                       </option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -270,7 +273,7 @@ export default function Inventory() {
                     <input
                       type="number"
                       min="1"
-                      placeholder="Quantity"
+                      placeholder={t("inventory.quantity")}
                       value={addQuantity}
                       onChange={(e) => setAddQuantity(e.target.value)}
                       style={{ width: 120, padding: 8 }}
@@ -282,14 +285,14 @@ export default function Inventory() {
                       onClick={() => setShowAddForm(false)}
                       disabled={addSaving}
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                     <button
                       className="stk-btn stk-btn--primary"
                       onClick={handleAddProduct}
                       disabled={addSaving}
                     >
-                      {addSaving ? "Adding..." : "Add"}
+                      {addSaving ? t("inventory.adding") : t("common.add")}
                     </button>
                   </div>
                 </div>
@@ -299,14 +302,14 @@ export default function Inventory() {
                   style={{ marginTop: 16 }}
                   onClick={() => setShowAddForm(true)}
                 >
-                  + Add product to this warehouse
+                  {t("inventory.addProductToWarehouse")}
                 </button>
               )}
             </div>
 
             <div className="stk-modal-footer">
               <button className="stk-btn stk-btn--ghost" onClick={closeModal}>
-                Close
+                {t("common.close")}
               </button>
             </div>
           </div>

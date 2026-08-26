@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
+import { formatLocalDate } from "../../lib/formatDate";
 import {
   fetchAccessRequests,
   approveAccessRequest,
@@ -7,10 +9,12 @@ import {
 } from "../../services/accessRequests-service";
 import type { AccessRequest } from "../../types/accessRequests";
 import "./access-requests.css";
+import i18n from "../../i18n/config";
 
 const ROLES = ["admin", "manager", "staff"];
 
 export default function PendingRequests() {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export default function PendingRequests() {
 
   async function submitApprove(id: string) {
     if (!userName.trim()) {
-      setActionError("Please enter a name.");
+      setActionError(t("accessRequests.enterNameError"));
       return;
     }
     setActionError("");
@@ -55,7 +59,7 @@ export default function PendingRequests() {
   }
 
   async function handleReject(id: string) {
-    if (!confirm("Reject this access request?")) return;
+    if (!confirm(t("accessRequests.rejectConfirm"))) return;
     await rejectAccessRequest(id);
     loadRequests();
   }
@@ -64,29 +68,29 @@ export default function PendingRequests() {
   const reviewed = requests.filter((r) => r.status !== "pending");
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="pg">
       <div className="pg-head">
         <div>
-          <div className="pg-title">Pending Requests</div>
+          <div className="pg-title">{t("accessRequests.pendingTitle")}</div>
           <p className="pg-subtitle">
-            Review and approve new account requests.
+            {t("accessRequests.pendingSubtitle")}
           </p>
         </div>
       </div>
 
       <div className="acr-card acr-list-card">
         <div className="acr-card-header">
-          <div className="acr-card-title">Pending ({pending.length})</div>
+          <div className="acr-card-title">{t("accessRequests.pendingCount")} ({pending.length})</div>
         </div>
         <table className="acr-tbl">
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Requested</th>
+              <th>{t("accessRequests.colEmail")}</th>
+              <th>{t("accessRequests.colRequested")}</th>
               <th style={{ width: 220 }}></th>
             </tr>
           </thead>
@@ -94,7 +98,7 @@ export default function PendingRequests() {
             {pending.length === 0 ? (
               <tr>
                 <td colSpan={3} style={{ textAlign: "center", padding: 24 }}>
-                  No pending requests.
+                  {t("accessRequests.noPending")}
                 </td>
               </tr>
             ) : (
@@ -102,14 +106,14 @@ export default function PendingRequests() {
                 <>
                   <tr key={r.id}>
                     <td>{r.email}</td>
-                    <td>{new Date(r.requestedAt).toLocaleDateString()}</td>
+                    <td>{formatLocalDate(r.requestedAt, i18n.language)}</td>
                     <td>
                       {approvingId === r.id ? (
                         <button
                           className="acr-link-btn"
                           onClick={() => setApprovingId(null)}
                         >
-                          Cancel
+                          {t("accessRequests.cancel")}
                         </button>
                       ) : (
                         <div className="acr-row-actions">
@@ -117,13 +121,13 @@ export default function PendingRequests() {
                             className="acr-btn acr-btn--primary acr-btn-sm"
                             onClick={() => openApprove(r.id)}
                           >
-                            Approve
+                            {t("accessRequests.approve")}
                           </button>
                           <button
                             className="acr-btn acr-btn--danger acr-btn-sm"
                             onClick={() => handleReject(r.id)}
                           >
-                            Reject
+                            {t("accessRequests.reject")}
                           </button>
                         </div>
                       )}
@@ -137,16 +141,16 @@ export default function PendingRequests() {
                             <div className="acr-error">{actionError}</div>
                           )}
                           <div className="acr-field">
-                            <label className="acr-label">Full Name</label>
+                            <label className="acr-label">{t("accessRequests.fieldFullName")}</label>
                             <input
                               className="acr-input"
                               value={userName}
                               onChange={(e) => setUserName(e.target.value)}
-                              placeholder="e.g. Mohamad Farhat"
+                              placeholder={t("accessRequests.fieldFullNamePlaceholder")}
                             />
                           </div>
                           <div className="acr-field">
-                            <label className="acr-label">Role</label>
+                            <label className="acr-label">{t("accessRequests.fieldRole")}</label>
                             <select
                               className="acr-select"
                               value={role}
@@ -154,7 +158,7 @@ export default function PendingRequests() {
                             >
                               {ROLES.map((roleOption) => (
                                 <option key={roleOption} value={roleOption}>
-                                  {roleOption}
+                                  {t(`accessRequests.roles.${roleOption}`)}
                                 </option>
                               ))}
                             </select>
@@ -163,7 +167,7 @@ export default function PendingRequests() {
                             className="acr-btn acr-btn--primary acr-btn-sm"
                             onClick={() => submitApprove(r.id)}
                           >
-                            Confirm Approval
+                            {t("accessRequests.confirmApproval")}
                           </button>
                         </div>
                       </td>
@@ -179,14 +183,14 @@ export default function PendingRequests() {
       {reviewed.length > 0 && (
         <div className="acr-card" style={{ marginTop: 24 }}>
           <div className="acr-card-header">
-            <div className="acr-card-title">Reviewed</div>
+            <div className="acr-card-title">{t("accessRequests.reviewedTitle")}</div>
           </div>
           <table className="acr-tbl">
             <thead>
               <tr>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Reviewed</th>
+                <th>{t("accessRequests.colEmail")}</th>
+                <th>{t("accessRequests.colStatus")}</th>
+                <th>{t("accessRequests.colReviewed")}</th>
               </tr>
             </thead>
             <tbody>
@@ -195,12 +199,12 @@ export default function PendingRequests() {
                   <td>{r.email}</td>
                   <td>
                     <span className={`acr-badge acr-badge--${r.status}`}>
-                      {r.status}
+                      {t(`accessRequests.status.${r.status}`)}
                     </span>
                   </td>
                   <td>
                     {r.reviewedAt
-                      ? new Date(r.reviewedAt).toLocaleDateString()
+                      ? formatLocalDate(r.reviewedAt, i18n.language)
                       : "-"}
                   </td>
                 </tr>

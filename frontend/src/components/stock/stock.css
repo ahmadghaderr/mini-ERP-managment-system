@@ -735,3 +735,23 @@
   background: var(--primary);
   width: 3px;
 }
+[dir="rtl"] .stk-tbl th:first-child,
+[dir="rtl"] .stk-tbl td:first-child {
+  padding-left: 16px;
+  padding-right: 22px;
+}
+
+[dir="rtl"] .stk-tbl th:last-child,
+[dir="rtl"] .stk-tbl td:last-child {
+  padding-right: 16px;
+  padding-left: 22px;
+}
+[dir="rtl"] .stk-col-resize-handle {
+  right: auto;
+  left: 0;
+}
+
+[dir="rtl"] .stk-col-resize-handle::after {
+  right: auto;
+  left: 3px;
+}

@@ -390,3 +390,6 @@
     min-width: 100%;
   }
 }
+[dir="rtl"] .usr-row-user {
+  flex-direction: row-reverse;
+}

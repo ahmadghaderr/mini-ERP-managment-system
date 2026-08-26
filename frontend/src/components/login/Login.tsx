@@ -1,21 +1,50 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { login, completeNewPassword } from "../../lib/cognito";
 import type { AuthFieldProps, AuthCardProps } from "../../types/auth";
 import "./Login.css";
 
 function AuthField({ label, type, value, onChange, required }: AuthFieldProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordField = type === "password";
+  const inputType = isPasswordField && showPassword ? "text" : type;
+
   return (
     <div className="login-field">
       <label className="login-label">{label}</label>
-      <input
-        type={type}
-        className="login-input"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-      />
+      <div className="login-input-wrapper">
+        <input
+          type={inputType}
+          className={`login-input ${isPasswordField ? "login-input--has-toggle" : ""}`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+        />
+        {isPasswordField && (
+          <button
+            type="button"
+            className="login-password-toggle"
+            onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68" />
+                <path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.74 9.74 0 0 0 5.39-1.61" />
+                <line x1="2" y1="2" x2="22" y2="22" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -43,6 +72,7 @@ function AuthCard({ title, subtitle, error, children }: AuthCardProps) {
 }
 
 export default function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -71,7 +101,7 @@ export default function Login() {
         navigate("/dashboard");
       }
     } catch {
-      setError("Incorrect email or password.");
+      setError(t("login.incorrectCredentials"));
       setLoading(false);
     }
   }
@@ -90,9 +120,7 @@ export default function Login() {
         navigate("/dashboard");
       }
     } catch {
-      setError(
-        "Could not set new password. Make sure it meets the requirements.",
-      );
+      setError(t("login.passwordRequirementsError"));
       setLoading(false);
     }
   }
@@ -100,20 +128,20 @@ export default function Login() {
   if (session) {
     return (
       <AuthCard
-        title="Set a new password"
-        subtitle="This is your first login — choose a permanent password."
+        title={t("login.newPasswordTitle")}
+        subtitle={t("login.newPasswordSubtitle")}
         error={error}
       >
         <form onSubmit={handleSetNewPassword}>
           <AuthField
-            label="New Password"
+            label={t("login.newPasswordLabel")}
             type="password"
             value={newPassword}
             onChange={setNewPassword}
             required
           />
           <button type="submit" className="login-button" disabled={loading}>
-            {loading ? "Setting password..." : "Set password"}
+            {loading ? t("login.settingPassword") : t("login.setPassword")}
           </button>
         </form>
       </AuthCard>
@@ -121,24 +149,24 @@ export default function Login() {
   }
 
   return (
-    <AuthCard title="StockPilot" subtitle="Sign in to your account" error={error}>
+    <AuthCard title={t("login.title")} subtitle={t("login.subtitle")} error={error}>
       <form onSubmit={handleLogin}>
         <AuthField
-          label="Email"
+          label={t("login.emailLabel")}
           type="email"
           value={email}
           onChange={setEmail}
           required
         />
         <AuthField
-          label="Password"
+          label={t("login.passwordLabel")}
           type="password"
           value={password}
           onChange={setPassword}
           required
         />
         <button type="submit" className="login-button" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
+          {loading ? t("login.signingIn") : t("login.signIn")}
         </button>
       </form>
     </AuthCard>

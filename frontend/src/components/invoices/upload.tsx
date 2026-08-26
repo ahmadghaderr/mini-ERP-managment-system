@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import "./invoices.css";
 import type { Warehouse } from "../../types/warehouse";
@@ -9,6 +10,7 @@ import { getApiErrorMessage } from "../../lib/apiError";
 type ExtractionStep = "idle" | "extracting";
 
 export default function Upload() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -63,7 +65,7 @@ export default function Upload() {
   async function handleStartExtraction() {
     if (!file) return;
     if (!warehouseId) {
-      alert("Please select a destination warehouse.");
+      alert(t("invoices.selectWarehouseAlert"));
       return;
     }
 
@@ -75,7 +77,7 @@ export default function Upload() {
       );
       if (lowConfidenceFields.length > 0) {
         alert(
-          `Extraction complete, but double-check these fields:\n${lowConfidenceFields.join("\n")}`,
+          `${t("invoices.lowConfidenceAlert")}\n${lowConfidenceFields.join("\n")}`,
         );
       }
       navigate(`/invoices/review/${invoice.id}`);
@@ -89,10 +91,9 @@ export default function Upload() {
     <div className="inv-pg">
       <div className="inv-pg-head">
         <div>
-          <h1 className="inv-pg-title">Upload & extract supplier invoice</h1>
+          <h1 className="inv-pg-title">{t("invoices.uploadTitle")}</h1>
           <p className="inv-pg-subtitle">
-            Upload your PDF invoice to extract products, quantities, and
-            pricing.
+            {t("invoices.uploadSubtitle")}
           </p>
         </div>
         <button className="inv-btn inv-btn--ghost" onClick={handleBack}>
@@ -100,7 +101,7 @@ export default function Upload() {
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          Back
+          {t("common.back")}
         </button>
       </div>
 
@@ -109,14 +110,14 @@ export default function Upload() {
           <div className="inv-card inv-upload-card">
             <div className="inv-filters-row">
               <div className="inv-field">
-                <label className="inv-label">Destination Warehouse</label>
+                <label className="inv-label">{t("invoices.destinationWarehouse")}</label>
                 <select
                   className="inv-select"
                   value={warehouseId}
                   disabled={step === "extracting"}
                   onChange={(e) => setWarehouseId(e.target.value)}
                 >
-                  {warehouses.length === 0 && <option value="">No warehouses available</option>}
+                  {warehouses.length === 0 && <option value="">{t("invoices.noWarehousesAvailable")}</option>}
                   {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>
                       {w.warehouseName}
@@ -128,7 +129,7 @@ export default function Upload() {
 
             {step === "idle" && (
               <div className="inv-field">
-                <label className="inv-label">Invoice Document</label>
+                <label className="inv-label">{t("invoices.invoiceDocument")}</label>
                 <label
                   className={`inv-dropzone ${isDragging ? "inv-dropzone--active" : ""} ${
                     file ? "inv-dropzone--has-file" : ""
@@ -154,11 +155,10 @@ export default function Upload() {
                     ) : (
                       <div>
                         <p className="inv-dropzone-text">
-                          <strong>Click to browse</strong> or drag & drop PDF
-                          here
+                          <strong>{t("invoices.clickToBrowse")}</strong> {t("invoices.dragDropHere")}
                         </p>
                         <span className="inv-dropzone-hint">
-                          Supports PDF, PNG, JPG (Max 10MB)
+                          {t("invoices.supportsFormats")}
                         </span>
                       </div>
                     )}
@@ -170,7 +170,7 @@ export default function Upload() {
                     className="inv-btn inv-btn--primary inv-upload-btn"
                     onClick={handleStartExtraction}
                   >
-                    Extract PDF Data
+                    {t("invoices.extractButton")}
                   </button>
                 )}
               </div>
@@ -180,15 +180,15 @@ export default function Upload() {
           {step === "extracting" && (
             <div className="inv-card inv-loading-card">
               <div className="inv-spinner" />
-              <h3>Extracting line items...</h3>
-              <p>Analyzing document structure, tables, and product details.</p>
+              <h3>{t("invoices.extractingTitle")}</h3>
+              <p>{t("invoices.extractingSubtitle")}</p>
             </div>
           )}
         </div>
 
         <div className="inv-card inv-preview-card">
           <div className="inv-preview-header">
-            <h3>Document Preview</h3>
+            <h3>{t("invoices.documentPreview")}</h3>
             {file && <span className="inv-file-badge">{file.name}</span>}
           </div>
 
@@ -209,7 +209,7 @@ export default function Upload() {
               )
             ) : (
               <div className="inv-preview-placeholder">
-                <p>Upload a PDF to view preview here</p>
+                <p>{t("invoices.uploadPlaceholder")}</p>
               </div>
             )}
           </div>

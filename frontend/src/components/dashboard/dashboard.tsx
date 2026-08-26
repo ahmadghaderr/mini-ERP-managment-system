@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   BarChart, Bar,
@@ -10,6 +11,7 @@ import { fetchProducts } from "../../services/product-service";
 import { fetchCustomerOrders } from "../../services/customerOrder-service";
 import { fetchSupplierInvoices } from "../../services/invoice-service";
 import { getApiErrorMessage } from "../../lib/apiError";
+import { formatLocalDate } from "../../lib/formatDate";
 import type { WarehouseStock, StockMovement } from "../../types/stock";
 import type { Product } from "../../types/product";
 import type { CustomerOrder } from "../../types/order";
@@ -64,8 +66,8 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function formatDate(dateStr: string, language: string): string {
+  return formatLocalDate(dateStr, language, { month: "short", day: "numeric", year: "numeric" });
 }
 
 const TEAL = "#3ab5cc";
@@ -109,10 +111,10 @@ function addUnit(d: Date, unit: BucketUnit, n: number): Date {
   return x;
 }
 
-function bucketLabel(d: Date, unit: BucketUnit): string {
-  if (unit === "month") return d.toLocaleDateString("en-US", { month: "short" });
-  if (unit === "week") return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return d.toLocaleDateString("en-US", { weekday: "short" });
+function bucketLabel(d: Date, unit: BucketUnit, language: string): string {
+  if (unit === "month") return formatLocalDate(d, language, { month: "short" });
+  if (unit === "week") return formatLocalDate(d, language, { month: "short", day: "numeric" });
+  return formatLocalDate(d, language, { weekday: "short" });
 }
 
 interface RevenueSpendPoint {
@@ -125,6 +127,7 @@ function computeRevenueSpendSeries(
   orders: CustomerOrder[],
   invoices: SupplierInvoice[],
   range: Range,
+  language: string,
 ): RevenueSpendPoint[] {
   const { count, unit } = RANGE_CONFIG[range];
   const startFn = unit === "day" ? startOfDay : unit === "week" ? startOfWeek : startOfMonth;
@@ -134,7 +137,7 @@ function computeRevenueSpendSeries(
   for (let i = count - 1; i >= 0; i--) {
     const s = addUnit(anchor, unit, -i);
     const e = addUnit(s, unit, 1);
-    buckets.push({ start: s, end: e, label: bucketLabel(s, unit), revenue: 0, spend: 0 });
+    buckets.push({ start: s, end: e, label: bucketLabel(s, unit, language), revenue: 0, spend: 0 });
   }
 
   function addToBucket(dateStr: string | null, amount: number, key: "revenue" | "spend") {
@@ -146,12 +149,12 @@ function computeRevenueSpendSeries(
 
   orders.forEach((o) => {
     if (o.status !== "confirmed" && o.status !== "delivered") return;
-    addToBucket(o.confirmedAt, orderTotal(o), "revenue");
+    addToBucket(o.uploadedAt, orderTotal(o), "revenue");
   });
 
   invoices.forEach((inv) => {
     if (inv.status !== "confirmed" && inv.status !== "delivered") return;
-    addToBucket(inv.confirmedAt, invoiceTotal(inv), "spend");
+    addToBucket(inv.invoiceDateExtracted, invoiceTotal(inv), "spend");
   });
 
   return buckets.map((b) => ({
@@ -187,19 +190,12 @@ const REPEAT_STOCKOUT_MIN_EVENTS = 2;
 const SPIKE_MULTIPLIER = 2;
 
 const CATEGORY_ORDER = ["water", "food", "healthcare", "electronics", "others"] as const;
-const CATEGORY_LABELS: Record<string, string> = {
-  water: "Water",
-  food: "Food",
-  healthcare: "Healthcare",
-  electronics: "Electronics",
-  others: "Others",
-};
 const CATEGORY_COLORS: Record<string, string> = {
   water: "#6cc6d9",
   food: "#3ab5cc",
   healthcare: "#2a94a8",
-  electronics: "#b2dde8",
-  others: "#e2e8f0",
+  electronics: "#2b4464",
+  others: "#94a3b8",
 };
 
 interface DeadStockRow {
@@ -385,6 +381,7 @@ function computeWarehouseValues(stock: WarehouseStock[], products: Product[]): W
 type AlertKey = "repeatStockouts" | "spikes";
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const userJson = localStorage.getItem("currentUser");
   const user = userJson ? JSON.parse(userJson) : null;
 
@@ -450,9 +447,15 @@ export default function Dashboard() {
   const [shipmentPage, setShipmentPage] = useState(0);
 
   const chartData = useMemo(
-    () => computeRevenueSpendSeries(orders, invoices, range),
-    [orders, invoices, range],
+    () => computeRevenueSpendSeries(orders, invoices, range, i18n.language),
+    [orders, invoices, range, i18n.language],
   );
+
+  const RANGE_LABEL_KEYS: Record<Range, string> = {
+    Day: "dashboard.day",
+    Week: "dashboard.week",
+    Month: "dashboard.month",
+  };
 
   const shipmentPageCount = Math.max(1, Math.ceil(upcomingShipments.length / SHIPMENTS_PAGE_SIZE));
   const visibleShipments = upcomingShipments.slice(
@@ -469,15 +472,17 @@ export default function Dashboard() {
       <div className="dash-pg-head">
         <div className="dash-header-row">
           <div>
-            <div className="dash-pg-title">Dashboard</div>
-            <p className="dash-pg-subtitle">Welcome back, {user?.fullName}.</p>
+            <div className="dash-pg-title">{t("dashboard.title")}</div>
+            <p className="dash-pg-subtitle">
+              {t("dashboard.welcomeBack")} {user?.fullName}.
+            </p>
           </div>
           <button className="dash-deadstock-btn" onClick={() => setShowDeadStock(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 8 12 3 3 8l9 5 9-5Z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" />
               <line x1="7" y1="10.5" x2="17" y2="10.5" />
             </svg>
-            Dead Stock
+            {t("dashboard.deadStockButton")}
           </button>
         </div>
       </div>
@@ -490,15 +495,15 @@ export default function Dashboard() {
 
       <div className="dash-stat-grid">
         <div className="dash-stat-card">
-          <span className="dash-stat-label">Total Revenue</span>
+          <span className="dash-stat-label">{t("dashboard.totalRevenue")}</span>
           <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalRevenue)}</span>
         </div>
         <div className="dash-stat-card">
-          <span className="dash-stat-label">Total Spend</span>
+          <span className="dash-stat-label">{t("dashboard.totalSpend")}</span>
           <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalSpend)}</span>
         </div>
         <div className="dash-stat-card">
-          <span className="dash-stat-label">Net Value</span>
+          <span className="dash-stat-label">{t("dashboard.netValue")}</span>
           <span className={`dash-stat-value ${netValue >= 0 ? "dash-stat-value--positive" : "dash-stat-value--negative"}`}>
             {loadingData ? "…" : formatCurrency(netValue)}
           </span>
@@ -507,10 +512,10 @@ export default function Dashboard() {
 
       <div className="dash-card">
         <div className="dash-card-header">
-          <div className="dash-card-title">Upcoming Shipments</div>
+          <div className="dash-card-title">{t("dashboard.upcomingShipments")}</div>
           <div className="dash-pager">
             <span className="dash-pager-info">
-              Page {shipmentPage + 1} of {shipmentPageCount}
+              {t("dashboard.pageOf", { current: shipmentPage + 1, total: shipmentPageCount })}
             </span>
             <button type="button" onClick={() => setShipmentPage((p) => Math.max(0, p - 1))} disabled={shipmentPage === 0}>
               ‹
@@ -523,16 +528,16 @@ export default function Dashboard() {
         <table className="dash-tbl">
           <thead>
             <tr>
-              <th>Supplier</th>
-              <th>Warehouse</th>
-              <th style={{ width: 140 }}>Expected Date</th>
+              <th>{t("dashboard.colSupplier")}</th>
+              <th>{t("dashboard.colWarehouse")}</th>
+              <th style={{ width: 140 }}>{t("dashboard.colExpectedDate")}</th>
             </tr>
           </thead>
           <tbody>
             {visibleShipments.length === 0 ? (
               <tr>
                 <td colSpan={3} style={{ textAlign: "center", padding: 20 }}>
-                  {loadingData ? "Loading…" : "No upcoming shipments."}
+                  {loadingData ? t("common.loading") + "…" : t("dashboard.noShipments")}
                 </td>
               </tr>
             ) : (
@@ -540,7 +545,7 @@ export default function Dashboard() {
                 <tr key={shipment.id}>
                   <td>{shipment.supplierName}</td>
                   <td>{shipment.warehouseName}</td>
-                  <td>{formatDate(shipment.expectedDeliveryDate)}</td>
+                  <td>{formatDate(shipment.expectedDeliveryDate, i18n.language)}</td>
                 </tr>
               ))
             )}
@@ -551,11 +556,11 @@ export default function Dashboard() {
       <div className="dash-charts">
         <div className="dash-card">
           <div className="dash-card-header">
-            <div className="dash-card-title">Revenue vs Spend</div>
+            <div className="dash-card-title">{t("dashboard.revenueVsSpend")}</div>
             <div className="dash-toggle">
               {(["Day", "Week", "Month"] as Range[]).map((o) => (
                 <button key={o} className={range === o ? "is-active" : ""} onClick={() => setRange(o)} type="button">
-                  {o}
+                  {t(RANGE_LABEL_KEYS[o])}
                 </button>
               ))}
             </div>
@@ -586,12 +591,12 @@ export default function Dashboard() {
 
         <div className="dash-card">
           <div className="dash-card-header">
-            <div className="dash-card-title">Orders by status</div>
+            <div className="dash-card-title">{t("dashboard.ordersByStatus")}</div>
           </div>
           <div className="dash-card-body">
             {orderStatusBreakdown.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)", fontSize: 14 }}>
-                {loadingData ? "Loading…" : "No orders yet."}
+                {loadingData ? t("common.loading") + "…" : t("dashboard.noOrdersYet")}
               </div>
             ) : (
               <>
@@ -622,7 +627,7 @@ export default function Dashboard() {
       <div className="dash-charts">
         <div className="dash-card">
           <div className="dash-card-header">
-            <div className="dash-card-title">Inventory value by warehouse</div>
+            <div className="dash-card-title">{t("dashboard.inventoryByWarehouse")}</div>
           </div>
           <div className="dash-card-body">
             <ResponsiveContainer width="100%" height={220}>
@@ -643,7 +648,7 @@ export default function Dashboard() {
                   tickLine={false}
                   width={100}
                 />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                <Tooltip formatter={(v) => formatCurrency(Number(v))} cursor={{ fill: "rgba(58, 181, 204, 0.08)" }} />
                 <Bar dataKey="value" fill={TEAL} radius={[0, 4, 4, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
@@ -652,7 +657,7 @@ export default function Dashboard() {
 
         <div className="dash-card">
           <div className="dash-card-header">
-            <div className="dash-card-title">Stock value by category</div>
+            <div className="dash-card-title">{t("dashboard.stockValueByCategory")}</div>
           </div>
           <div className="dash-card-body">
             <ResponsiveContainer width="100%" height={200}>
@@ -669,7 +674,7 @@ export default function Dashboard() {
               {categoryValues.map((row) => (
                 <div key={row.category} className="dash-legend-item">
                   <span className="dash-legend-dot" style={{ background: CATEGORY_COLORS[row.category] }} />
-                  {CATEGORY_LABELS[row.category]}
+                  {t(`dashboard.categories.${row.category}`)}
                 </div>
               ))}
             </div>
@@ -684,7 +689,7 @@ export default function Dashboard() {
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          Stock Alerts
+          {t("dashboard.stockAlerts")}
         </h2>
 
         <div className={`dash-alert-card ${repeatStockoutRows.length > 0 ? "dash-alert-card--active" : ""}`}>
@@ -695,8 +700,10 @@ export default function Dashboard() {
               </svg>
             </div>
             <div className="dash-alert-body">
-              <div className="dash-alert-name">Repeat Stockouts</div>
-              <div className="dash-alert-desc">Products that keep running out ({REPEAT_STOCKOUT_MIN_EVENTS}+ times)</div>
+              <div className="dash-alert-name">{t("dashboard.repeatStockouts")}</div>
+              <div className="dash-alert-desc">
+                {t("dashboard.repeatStockoutsDesc")} ({REPEAT_STOCKOUT_MIN_EVENTS}+)
+              </div>
             </div>
             <span className="dash-alert-count">{loadingData ? "…" : repeatStockoutRows.length}</span>
             <svg className={`dash-alert-chevron ${openAlert === "repeatStockouts" ? "dash-alert-chevron--open" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -706,12 +713,14 @@ export default function Dashboard() {
           {openAlert === "repeatStockouts" && (
             <div className="dash-alert-detail">
               {repeatStockoutRows.length === 0 ? (
-                <div className="dash-alert-detail-empty">No products repeatedly running out.</div>
+                <div className="dash-alert-detail-empty">{t("dashboard.noRepeatStockouts")}</div>
               ) : (
                 repeatStockoutRows.slice(0, 5).map((row, i) => (
                   <div key={i} className="dash-alert-detail-row">
                     <span className="dash-alert-detail-name">{row.productName}</span>
-                    <span className="dash-alert-detail-meta">{row.stockoutCount} stockouts</span>
+                    <span className="dash-alert-detail-meta">
+                      {row.stockoutCount} {t("dashboard.stockouts")}
+                    </span>
                   </div>
                 ))
               )}
@@ -727,8 +736,10 @@ export default function Dashboard() {
               </svg>
             </div>
             <div className="dash-alert-body">
-              <div className="dash-alert-name">Consumption Spikes</div>
-              <div className="dash-alert-desc">Usage {SPIKE_MULTIPLIER}x+ above last week's pace</div>
+              <div className="dash-alert-name">{t("dashboard.consumptionSpikes")}</div>
+              <div className="dash-alert-desc">
+                {SPIKE_MULTIPLIER}x+ {t("dashboard.consumptionSpikesDesc")}
+              </div>
             </div>
             <span className="dash-alert-count">{loadingData ? "…" : spikeRows.length}</span>
             <svg className={`dash-alert-chevron ${openAlert === "spikes" ? "dash-alert-chevron--open" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -738,12 +749,14 @@ export default function Dashboard() {
           {openAlert === "spikes" && (
             <div className="dash-alert-detail">
               {spikeRows.length === 0 ? (
-                <div className="dash-alert-detail-empty">No unusual consumption spikes detected.</div>
+                <div className="dash-alert-detail-empty">{t("dashboard.noSpikes")}</div>
               ) : (
                 spikeRows.slice(0, 5).map((row, i) => (
                   <div key={i} className="dash-alert-detail-row">
                     <span className="dash-alert-detail-name">{row.productName}</span>
-                    <span className="dash-alert-detail-meta">{row.multiplier}x usual pace</span>
+                    <span className="dash-alert-detail-meta">
+                      {row.multiplier}x {t("dashboard.usualPace")}
+                    </span>
                   </div>
                 ))
               )}
@@ -756,7 +769,7 @@ export default function Dashboard() {
         <div className="dash-modal-overlay" onClick={() => setShowDeadStock(false)}>
           <div className="dash-modal" onClick={(e) => e.stopPropagation()}>
             <div className="dash-modal-header">
-              <div className="dash-modal-title">Dead Stock</div>
+              <div className="dash-modal-title">{t("dashboard.deadStockModalTitle")}</div>
               <div className="dash-toggle">
                 {DEAD_STOCK_OPTIONS.map((d) => (
                   <button
@@ -769,7 +782,7 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <button className="dash-modal-close" onClick={() => setShowDeadStock(false)} aria-label="Close">
+              <button className="dash-modal-close" onClick={() => setShowDeadStock(false)} aria-label={t("common.close")}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -779,16 +792,16 @@ export default function Dashboard() {
             <div className="dash-modal-body">
               {deadStockRows.length === 0 ? (
                 <div className="dash-deadstock-empty">
-                  No dead stock — everything has moved within the last {deadStockDays} days.
+                  {t("dashboard.noDeadStock")} {deadStockDays} {t("dashboard.days")}.
                 </div>
               ) : (
                 <table className="dash-tbl">
                   <thead>
                     <tr>
-                      <th>Product</th>
-                      <th>Warehouse</th>
-                      <th>Qty on Hand</th>
-                      <th>Last Movement</th>
+                      <th>{t("dashboard.colProduct")}</th>
+                      <th>{t("dashboard.colWarehouse")}</th>
+                      <th>{t("dashboard.colQtyOnHand")}</th>
+                      <th>{t("dashboard.colLastMovement")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -799,8 +812,8 @@ export default function Dashboard() {
                         <td style={{ fontWeight: 600 }}>{row.quantityOnHand}</td>
                         <td>
                           {row.daysSince === null
-                            ? "Never moved"
-                            : `${row.daysSince} day${row.daysSince === 1 ? "" : "s"} ago`}
+                            ? t("dashboard.neverMoved")
+                            : `${row.daysSince} ${row.daysSince === 1 ? t("dashboard.dayAgo") : t("dashboard.daysAgo")}`}
                         </td>
                       </tr>
                     ))}

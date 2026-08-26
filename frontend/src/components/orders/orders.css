@@ -680,3 +680,14 @@
   padding: 14px 16px !important;
   background: var(--bg-surface-subtle);
 }
+[dir="rtl"] .ord-tbl th:first-child,
+[dir="rtl"] .ord-tbl td:first-child {
+  padding-left: 16px;
+  padding-right: 22px;
+}
+
+[dir="rtl"] .ord-tbl th:last-child,
+[dir="rtl"] .ord-tbl td:last-child {
+  padding-right: 16px;
+  padding-left: 22px;
+}

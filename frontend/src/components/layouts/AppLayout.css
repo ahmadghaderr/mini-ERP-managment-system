@@ -430,3 +430,90 @@ html, body, #root {
     transform: rotate(360deg);
   }
 }
+/* language toggle button */
+.topbar-lang-toggle {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary, #475569);
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 8px;
+}
+
+.topbar-lang-toggle:hover {
+  border-color: #3ab5cc;
+  color: #3ab5cc;
+}
+
+/* ============================================
+   RTL OVERRIDES — applied automatically when
+   <html dir="rtl"> is set by i18n/config.ts
+   ============================================ */
+
+[dir="rtl"] .sidebar {
+  left: auto;
+  right: 0;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+}
+
+[dir="rtl"] .app-main {
+  margin-left: 0;
+  margin-right: 240px;
+}
+
+[dir="rtl"] .sidebar-logo {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sidebar-link {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sidebar-link::before {
+  left: auto;
+  right: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+[dir="rtl"] .sidebar-link:hover {
+  transform: translateX(-4px);
+}
+
+[dir="rtl"] .sidebar-link.active::after {
+  right: auto;
+  left: 10px;
+}
+
+[dir="rtl"] .sidebar-user-info {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .topbar-right {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .topbar-user {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .topbar-lang-toggle {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+@media (max-width: 1024px) {
+  [dir="rtl"] .app-main {
+    margin-left: 0;
+    margin-right: 76px;
+  }
+}
+
+@media (max-width: 640px) {
+  [dir="rtl"] .app-main {
+    margin-right: 0;
+  }
+}

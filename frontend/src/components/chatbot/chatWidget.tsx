@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   createChatSession,
   listChatSessions,
@@ -10,6 +11,7 @@ import type { ChatMessage } from "../../types/chatbot";
 import "./chatbot.css";
 
 export default function ChatWidget() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -102,11 +104,11 @@ export default function ChatWidget() {
       {isOpen && (
         <div className="chat-panel">
           <div className="chat-panel-header">
-            <span>ERP Assistant</span>
+            <span>{t("chatbot.widgetTitle")}</span>
             <button
               className="chat-close-btn"
               onClick={() => setIsOpen(false)}
-              aria-label="Close chat"
+              aria-label={t("common.close")}
             >
               &times;
             </button>
@@ -115,7 +117,7 @@ export default function ChatWidget() {
           <div className="chat-messages" ref={scrollRef}>
             {messages.length === 0 && (
               <div className="chat-empty-state">
-                Ask me anything about warehouses, products, orders, or invoices.
+                {t("chatbot.askAnything")}
               </div>
             )}
             {messages.map((m) => (
@@ -128,7 +130,7 @@ export default function ChatWidget() {
             ))}
             {sending && (
               <div className="chat-message chat-message--assistant chat-message--pending">
-                Thinking...
+                {t("common.loading")}...
               </div>
             )}
           </div>
@@ -141,7 +143,7 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
+              placeholder={t("chatbot.inputPlaceholder")}
               rows={1}
               disabled={sending || !sessionReady}
             />

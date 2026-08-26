@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
 import { useNavigate, useParams } from "react-router-dom";
 import "./orders.css";
@@ -16,6 +17,7 @@ import { fetchProducts } from "../../services/product-service";
 import { getApiErrorMessage } from "../../lib/apiError";
 
 export default function OrderReview() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -94,7 +96,7 @@ export default function OrderReview() {
 
   async function handleReject() {
     if (!order) return;
-    if (!confirm("Are you sure you want to reject this order?")) return;
+    if (!confirm(t("orders.rejectConfirmMsg"))) return;
     setSaving(true);
     setActionError(null);
     try {
@@ -109,11 +111,7 @@ export default function OrderReview() {
 
   async function handleDelete() {
     if (!order) return;
-    if (
-      !confirm(
-        "Are you sure you want to delete this order? This action cannot be undone.",
-      )
-    )
+    if (!confirm(t("orders.deleteConfirmMsg")))
       return;
     setSaving(true);
     setActionError(null);
@@ -128,7 +126,7 @@ export default function OrderReview() {
   }
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   if (loadError) {
@@ -154,9 +152,9 @@ export default function OrderReview() {
     <div className="ord-pg">
       <div className="ord-pg-head">
         <div>
-          <h1 className="ord-pg-title">Review order</h1>
+          <h1 className="ord-pg-title">{t("orders.reviewOrderTitle")}</h1>
           <p className="ord-subtext">
-            {order.extractedCustomerName ?? "Unknown customer"}
+            {order.extractedCustomerName ?? t("orders.unknownCustomer")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -165,7 +163,7 @@ export default function OrderReview() {
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
-            Back
+            {t("common.back")}
           </button>
           <button
             className="ord-btn ord-btn--danger"
@@ -178,7 +176,7 @@ export default function OrderReview() {
               <line x1="10" y1="11" x2="10" y2="17" />
               <line x1="14" y1="11" x2="14" y2="17" />
             </svg>
-            Delete
+            {t("common.delete")}
           </button>
         </div>
       </div>
@@ -195,10 +193,10 @@ export default function OrderReview() {
           <line x1="12" y1="16" x2="12" y2="12" />
           <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
-        {order.status === "pending" && "Match each item to a product before confirming."}
-        {order.status === "confirmed" && "Order confirmed — stock reserved. Ready to deliver."}
-        {order.status === "delivered" && "This order has already been delivered."}
-        {order.status === "rejected" && "This order has been rejected."}
+        {order.status === "pending" && t("orders.matchBeforeConfirm")}
+        {order.status === "confirmed" && t("orders.confirmedReadyDeliver")}
+        {order.status === "delivered" && t("orders.alreadyDelivered")}
+        {order.status === "rejected" && t("orders.alreadyRejected")}
       </div>
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 16 }}>
@@ -214,7 +212,7 @@ export default function OrderReview() {
             />
           ) : (
             <div style={{ padding: 24, textAlign: "center" }}>
-              No PDF preview available.
+              {t("orders.uploadPlaceholder")}
             </div>
           )}
         </div>
@@ -223,10 +221,10 @@ export default function OrderReview() {
           <table className="ord-tbl">
             <thead>
               <tr>
-                <th>Extracted name</th>
-                <th style={{ width: 70 }}>Qty</th>
-                <th style={{ width: 90 }}>Unit price</th>
-                <th style={{ width: 180 }}>Matched product</th>
+                <th>{t("orders.colExtractedName")}</th>
+                <th style={{ width: 70 }}>{t("orders.colQty")}</th>
+                <th style={{ width: 90 }}>{t("orders.colUnitPrice")}</th>
+                <th style={{ width: 180 }}>{t("orders.colMatchedProduct")}</th>
               </tr>
             </thead>
             <tbody>
@@ -247,7 +245,7 @@ export default function OrderReview() {
                       onChange={(e) => handleMatch(item.id, e.target.value)}
                     >
                       <option value="" disabled>
-                        Select product
+                        {t("orders.selectProduct")}
                       </option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -262,7 +260,7 @@ export default function OrderReview() {
             <tfoot>
               <tr>
                 <td colSpan={2} className="ord-total-label">
-                  Total
+                  {t("orders.total")}
                 </td>
                 <td colSpan={2} className="ord-total-value">
                   ${totalPrice.toFixed(2)}
@@ -283,7 +281,7 @@ export default function OrderReview() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            Confirm
+            {t("common.confirm")}
           </button>
         )}
 
@@ -298,7 +296,7 @@ export default function OrderReview() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Deliver
+            {t("orders.deliverButton")}
           </button>
         )}
 
@@ -312,7 +310,7 @@ export default function OrderReview() {
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
-            Reject
+            {t("common.reject")}
           </button>
         )}
       </div>

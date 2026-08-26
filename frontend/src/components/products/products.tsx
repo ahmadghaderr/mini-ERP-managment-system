@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
 import { hasPermission } from "../permissions/permissions";
 import { decodeToken } from "../../lib/cognito";
@@ -40,6 +41,7 @@ interface ProductModalProps {
 }
 
 function ProductModal({ product, onSave, onClose }: ProductModalProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<CreateProductPayload>({
     productName: product?.productName ?? "",
     category: product?.category ?? "water",
@@ -48,7 +50,7 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
 
   function handleSubmit() {
     if (!formData.productName.trim() || formData.price <= 0) {
-      alert("Please fill in a valid name and price");
+      alert(t("products.fillValidFields"));
       return;
     }
     onSave(formData);
@@ -59,12 +61,12 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
       <div className="prod-modal" onClick={(e) => e.stopPropagation()}>
         <div className="prod-modal-header">
           <div className="prod-modal-title">
-            {product ? "Edit Product" : "Add Product"}
+            {product ? t("products.modalTitleEdit") : t("products.modalTitleAdd")}
           </div>
           <button
             className="prod-modal-close"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <svg
               width="18"
@@ -84,18 +86,18 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
 
         <div className="prod-modal-body">
           <div className="field">
-            <label>Product Name</label>
+            <label>{t("products.fieldName")}</label>
             <input
               className="input"
               value={formData.productName}
               onChange={(e) =>
                 setFormData({ ...formData, productName: e.target.value })
               }
-              placeholder="e.g. Bottled Water 500ml"
+              placeholder={t("products.fieldNamePlaceholder")}
             />
           </div>
           <div className="field">
-            <label>Category</label>
+            <label>{t("products.fieldCategory")}</label>
             <select
               className="select"
               value={formData.category}
@@ -108,13 +110,13 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
             >
               {FORM_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {t(`products.categories.${c}`)}
                 </option>
               ))}
             </select>
           </div>
           <div className="field">
-            <label>Price ($)</label>
+            <label>{t("products.fieldPrice")}</label>
             <input
               className="input"
               type="number"
@@ -131,10 +133,10 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
 
         <div className="prod-modal-footer">
           <button className="btn btn--ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="btn btn--primary" onClick={handleSubmit}>
-            {product ? "Save Changes" : "Create Product"}
+            {product ? t("products.saveChanges") : t("products.createButton")}
           </button>
         </div>
       </div>
@@ -143,6 +145,7 @@ function ProductModal({ product, onSave, onClose }: ProductModalProps) {
 }
 
 export default function Products() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -198,19 +201,19 @@ export default function Products() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this product?")) return;
+    if (!confirm(t("products.deleteConfirm"))) return;
     await deleteProduct(id);
     loadProducts();
   }
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="pg">
       <div className="pg-head">
-        <h1 className="pg-title">Products</h1>
+        <h1 className="pg-title">{t("products.title")}</h1>
       </div>
 
       <div className="pg-toolbar">
@@ -231,7 +234,7 @@ export default function Products() {
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products"
+            placeholder={t("products.searchPlaceholder")}
           />
         </div>
 
@@ -244,7 +247,7 @@ export default function Products() {
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
-              {c === "all" ? "All categories" : c}
+              {c === "all" ? t("products.allCategories") : t(`products.categories.${c}`)}
             </option>
           ))}
         </select>
@@ -262,7 +265,7 @@ export default function Products() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add product
+            {t("products.addButton")}
           </button>
         )}
       </div>
@@ -271,10 +274,10 @@ export default function Products() {
         <table className="tbl">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              {canManage && <th className="tbl-actions">Actions</th>}
+              <th>{t("products.colName")}</th>
+              <th>{t("products.colCategory")}</th>
+              <th>{t("products.colPrice")}</th>
+              {canManage && <th className="tbl-actions">{t("products.colActions")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -283,20 +286,20 @@ export default function Products() {
                 <td className="tbl-name">{p.productName}</td>
                 <td>
                   <span className={`badge badge--cat-${p.category}`}>
-                    {p.category}
+                    {t(`products.categories.${p.category}`)}
                   </span>
                 </td>
                 <td>${p.price.toFixed(2)}</td>
-                                {canManage && (
+                {canManage && (
                   <td className="tbl-actions">
                     <button className="row-btn" onClick={() => handleEdit(p)}>
-                      Edit
+                      {t("common.edit")}
                     </button>
                     <button
                       className="row-btn row-btn--danger"
                       onClick={() => handleDelete(p.id)}
                     >
-                      Delete
+                      {t("common.delete")}
                     </button>
                   </td>
                 )}

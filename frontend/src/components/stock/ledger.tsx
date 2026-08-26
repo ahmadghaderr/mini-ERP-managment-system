@@ -1,24 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PageLoader from "../shared/PageLoader";
 import "./stock.css";
 import type { StockMovement, StockMovementReason } from "../../types/stock";
 import { fetchStockMovements } from "../../services/stock-service";
-
-const TYPE_LABELS: Record<StockMovementReason, string> = {
-  transfer_in: "TRANSFER IN",
-  transfer_out: "TRANSFER OUT",
-  invoice_delivered: "INVOICE DELIVERED",
-  order_delivered: "ORDER DELIVERED",
-  adjustment: "ADJUSTMENT",
-};
-
-const TYPE_BADGE: Record<StockMovementReason, string> = {
-  transfer_in: "stk-badge--success",
-  transfer_out: "stk-badge--info",
-  invoice_delivered: "stk-badge--success",
-  order_delivered: "stk-badge--info",
-  adjustment: "stk-badge--warning",
-};
+import { formatLocalDateTime } from "../../lib/formatDate";
+import i18n from "../../i18n/config";
 
 type ColumnKey = "id" | "referenceId" | "createdAt" | "product" | "warehouse" | "quantityChange" | "reason";
 
@@ -34,21 +21,28 @@ const DEFAULT_WIDTHS: Record<ColumnKey, number> = {
 
 const MIN_COLUMN_WIDTH = 60;
 
-const COLUMN_LABELS: Record<ColumnKey, string> = {
-  id: "Ledger ID",
-  referenceId: "Reference",
-  createdAt: "Timestamp",
-  product: "Product",
-  warehouse: "Warehouse",
-  quantityChange: "Qty Change",
-  reason: "Type",
-};
-
 const COLUMN_ORDER: ColumnKey[] = [
   "id", "referenceId", "createdAt", "product", "warehouse", "quantityChange", "reason",
 ];
 
+const TYPE_KEY_MAP: Record<StockMovementReason, string> = {
+  transfer_in: "ledger.types.transferIn",
+  transfer_out: "ledger.types.transferOut",
+  invoice_delivered: "ledger.types.invoiceDelivered",
+  order_delivered: "ledger.types.orderDelivered",
+  adjustment: "ledger.types.adjustment",
+};
+
+const TYPE_BADGE: Record<StockMovementReason, string> = {
+  transfer_in: "stk-badge--success",
+  transfer_out: "stk-badge--info",
+  invoice_delivered: "stk-badge--success",
+  order_delivered: "stk-badge--info",
+  adjustment: "stk-badge--warning",
+};
+
 export default function Ledger() {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -56,6 +50,16 @@ export default function Ledger() {
 
   const resizingRef = useRef<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
   const [resizingKey, setResizingKey] = useState<ColumnKey | null>(null);
+
+  const COLUMN_LABEL_KEYS: Record<ColumnKey, string> = {
+    id: "ledger.colLedgerId",
+    referenceId: "ledger.colReference",
+    createdAt: "ledger.colTimestamp",
+    product: "ledger.colProduct",
+    warehouse: "ledger.colWarehouse",
+    quantityChange: "ledger.colQtyChange",
+    reason: "ledger.colType",
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +79,9 @@ export default function Ledger() {
     function handleMouseMove(e: MouseEvent) {
       if (!resizingRef.current) return;
       const { key, startX, startWidth } = resizingRef.current;
-      const delta = e.clientX - startX;
+      const isRtl = document.documentElement.dir === "rtl";
+      const rawDelta = e.clientX - startX;
+      const delta = isRtl ? -rawDelta : rawDelta;
       const newWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + delta);
       setColWidths((prev) => ({ ...prev, [key]: newWidth }));
     }
@@ -113,7 +119,7 @@ export default function Ledger() {
       case "referenceId":
         return <span style={{ fontWeight: 600 }}>{entry.referenceId ?? "—"}</span>;
       case "createdAt":
-        return <span style={{ fontSize: 13 }}>{new Date(entry.createdAt).toLocaleString()}</span>;
+        return <span style={{ fontSize: 13 }}>{formatLocalDateTime(entry.createdAt, i18n.language)}</span>;
       case "product":
         return entry.product?.productName ?? "—";
       case "warehouse":
@@ -128,27 +134,27 @@ export default function Ledger() {
       case "reason":
         return (
           <span className={`stk-badge ${TYPE_BADGE[entry.reason]}`}>
-            {TYPE_LABELS[entry.reason]}
+            {t(TYPE_KEY_MAP[entry.reason])}
           </span>
         );
     }
   }
 
   if (loading) {
-        return <PageLoader />;
+    return <PageLoader />;
   }
 
   return (
     <div className="stk-pg">
       <div className="stk-pg-head">
         <div>
-          <div className="stk-pg-title">Ledger</div>
+          <div className="stk-pg-title">{t("ledger.title")}</div>
         </div>
       </div>
 
       <div className="stk-card">
         <div className="stk-card-header stk-ledger-header">
-          <div className="stk-card-title">Stock Movement Audit</div>
+          <div className="stk-card-title">{t("ledger.cardTitle")}</div>
           <div className="search-wrap stk-ledger-search">
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -157,7 +163,7 @@ export default function Ledger() {
             <input
               className="search-input"
               type="text"
-              placeholder="Search audit log..."
+              placeholder={t("ledger.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -175,7 +181,7 @@ export default function Ledger() {
               <tr>
                 {COLUMN_ORDER.map((key) => (
                   <th key={key}>
-                    {COLUMN_LABELS[key]}
+                    {t(COLUMN_LABEL_KEYS[key])}
                     <div
                       className={`stk-col-resize-handle ${resizingKey === key ? "is-resizing" : ""}`}
                       onMouseDown={(e) => startResize(key, e)}
@@ -188,7 +194,7 @@ export default function Ledger() {
               {filteredEntries.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
-                    No ledger records found.
+                    {t("ledger.noRecordsFound")}
                   </td>
                 </tr>
               ) : (
