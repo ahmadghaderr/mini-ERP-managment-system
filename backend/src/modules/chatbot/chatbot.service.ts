@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
+import { Response } from 'express';
 import { ChatSession } from './entities/chat-session.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { User } from '../users/entities/user.entity';
@@ -87,7 +88,7 @@ export class ChatbotService {
           text += delta;
         }
       } catch {
-        // skip malformed/partial chunks
+        continue;
       }
     }
     return text.trim();
@@ -184,8 +185,141 @@ export class ChatbotService {
     return { reply };
   }
 
+  async streamMessage(
+    cognitoSub: string,
+    sessionId: string,
+    message: string,
+    accessToken: string,
+    res: Response,
+  ): Promise<void> {
+    const session = await this.getOwnedSession(cognitoSub, sessionId);
+
+    const userMessage = this.messageRepo.create({
+      chatSessionId: sessionId,
+      role: 'user',
+      text: message,
+    });
+    await this.messageRepo.save(userMessage);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const encodedArn = encodeURIComponent(CHATBOT_AGENT_RUNTIME_ARN);
+    const url = `https://bedrock-agentcore.${AGENTCORE_REGION}.amazonaws.com/runtimes/${encodedArn}/invocations?qualifier=DEFAULT`;
+
+    let fullText = '';
+    let buffer = '';
+
+    const finalizeAndSave = async () => {
+      const replyText = fullText.trim() || 'The chatbot did not return a response.';
+      const assistantMessage = this.messageRepo.create({
+        chatSessionId: sessionId,
+        role: 'assistant',
+        text: replyText,
+      });
+      await this.messageRepo.save(assistantMessage);
+
+      if (session.title === 'New chat') {
+        session.title =
+          message.length > TITLE_MAX_LENGTH
+            ? `${message.slice(0, TITLE_MAX_LENGTH)}…`
+            : message;
+      }
+      await this.sessionRepo.save(session);
+    };
+
+    try {
+      const response = await axios.post(
+        url,
+        { prompt: message },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Amzn-Bedrock-AgentCore-Runtime-Session-Id': sessionId,
+          },
+          responseType: 'stream',
+        },
+      );
+
+      const stream = response.data;
+
+      stream.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString('utf8');
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const jsonStr = trimmed.replace(/^data:\s*/, '').trim();
+          if (!jsonStr) continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+
+            this.logger.debug(`Chatbot raw event: ${jsonStr}`);
+
+            const textDelta = parsed?.event?.contentBlockDelta?.delta?.text;
+            const thinkingDelta =
+              parsed?.event?.contentBlockDelta?.delta?.reasoningContent?.text;
+
+            if (typeof thinkingDelta === 'string') {
+              res.write(
+                `data: ${JSON.stringify({ type: 'thinking', delta: thinkingDelta })}\n\n`,
+              );
+            } else if (typeof textDelta === 'string') {
+              fullText += textDelta;
+              res.write(
+                `data: ${JSON.stringify({ type: 'text', delta: textDelta })}\n\n`,
+              );
+            }
+          } catch {
+            continue;
+          }
+        }
+      });
+
+      stream.on('end', async () => {
+        try {
+          await finalizeAndSave();
+        } catch (err) {
+          this.logger.error('Failed to persist streamed chatbot reply', err);
+        }
+        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        res.end();
+      });
+
+      stream.on('error', (err: Error) => {
+        this.logger.error('Chatbot stream error', err);
+        res.write(
+          `data: ${JSON.stringify({ type: 'error', message: 'Chatbot stream failed.' })}\n\n`,
+        );
+        res.end();
+      });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        this.logger.error(`Chatbot stream invocation failed (status ${status})`);
+        const errMessage =
+          status === 401 || status === 403
+            ? 'Not authorized to use the chatbot. Please log in again.'
+            : 'Chatbot request failed.';
+        res.write(`data: ${JSON.stringify({ type: 'error', message: errMessage })}\n\n`);
+      } else {
+        this.logger.error('Unexpected chatbot stream error', err);
+        res.write(
+          `data: ${JSON.stringify({ type: 'error', message: 'Chatbot request failed.' })}\n\n`,
+        );
+      }
+      res.end();
+    }
+  }
+
   async deleteSession(cognitoSub: string, sessionId: string): Promise<void> {
-  await this.getOwnedSession(cognitoSub, sessionId);
-  await this.sessionRepo.delete({ id: sessionId });
-}
+    await this.getOwnedSession(cognitoSub, sessionId);
+    await this.sessionRepo.delete({ id: sessionId });
+  }
 }
