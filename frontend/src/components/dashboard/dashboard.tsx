@@ -382,9 +382,6 @@ type AlertKey = "repeatStockouts" | "spikes";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
-  const userJson = localStorage.getItem("currentUser");
-  const user = userJson ? JSON.parse(userJson) : null;
-
   const [stock, setStock] = useState<WarehouseStock[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);

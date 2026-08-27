@@ -34,13 +34,13 @@ export class SupplierInvoicesController {
     return this.service.findOne(id);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin', 'manager',)
   @Post()
   create(@Body() data: CreateSupplierInvoiceDto) {
     return this.service.create(data);
   }
 
-  @Roles('admin', 'manager', 'staff')
+  @Roles('admin', 'manager')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   upload(
@@ -50,7 +50,7 @@ export class SupplierInvoicesController {
     return this.service.uploadAndExtract(file, warehouseId);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin', 'manager')
   @Patch(':invoiceId/items/:itemId/match')
   matchItem(
     @Param('invoiceId') invoiceId: string,
@@ -60,7 +60,7 @@ export class SupplierInvoicesController {
     return this.service.matchItem(invoiceId, itemId, dto.matchedProductId);
   }
 
-  @Roles('admin', 'staff')
+  @Roles('admin', 'manager')
   @Patch(':invoiceId/items/:itemId/price')
   updateItemPrice(
     @Param('invoiceId') invoiceId: string,

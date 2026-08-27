@@ -300,7 +300,6 @@ export default function Order({ onBack }: OrderProps) {
               <div className="ord-extracted-header">
                 <div>
                   <h3>{t("orders.requestedItems")}</h3>
-                  <h3>Requested Items</h3>
                   {editingName ? (
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
                       <input
