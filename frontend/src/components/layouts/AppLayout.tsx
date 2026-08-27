@@ -106,10 +106,11 @@ function UserSummary({ name, role, variant }: UserSummaryProps) {
   const { t } = useTranslation();
   const nameClass = variant === 'sidebar' ? 'sidebar-user-name' : 'topbar-user-name';
   const roleClass = variant === 'sidebar' ? 'sidebar-user-role' : 'topbar-user-role';
+  const roleLabel = role ? t(`users.roles.${role.toLowerCase()}`, role) : '—';
   return (
     <>
       <span className={nameClass}>{name ?? 'Unknown user'}</span>
-      <span className={roleClass}>{t(`users.roles.${role.toLowerCase()}`, role)}</span>
+      <span className={roleClass}>{roleLabel}</span>
     </>
   );
 }

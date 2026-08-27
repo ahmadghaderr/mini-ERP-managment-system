@@ -219,7 +219,7 @@ table, th, td, tr, thead, tbody {
    ============================================ */
 
 * {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Every table header cell, on every page */
