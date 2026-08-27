@@ -95,11 +95,13 @@ export default function Transfer() {
       alert(t("transfers.errorSelectProduct"));
       return;
     }
+    if (items.some((it) => !it.quantity || it.quantity < 1)) {
+      alert(t("transfers.errorSelectProduct"));
+      return;
+    }
 
     setSubmitting(true);
     try {
-      // NOTE: backend accepts one product per transfer request. If multiple
-      // items are added, submit them as separate transfer calls.
       for (const item of items) {
         const payload: CreateTransferPayload = {
           productId: item.productId,
@@ -207,10 +209,21 @@ export default function Transfer() {
                   className="stk-input"
                   type="number"
                   min="1"
-                  value={item.quantity}
-                  onChange={(e) =>
-                    updateItem(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })
-                  }
+                  value={item.quantity === 0 ? "" : item.quantity}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      updateItem(idx, { quantity: 0 });
+                      return;
+                    }
+                    const parsed = parseInt(val, 10);
+                    updateItem(idx, { quantity: Number.isNaN(parsed) ? 0 : parsed });
+                  }}
+                  onBlur={() => {
+                    if (!item.quantity || item.quantity < 1) {
+                      updateItem(idx, { quantity: 1 });
+                    }
+                  }}
                 />
 
                 <button

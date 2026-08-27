@@ -18,6 +18,8 @@ export type Action =
   | 'transfers:create'
   | 'transfers:approve'
   | 'users:manage'
+  | 'dashboard:view'
+  | 'dashboard:revenue'
   | 'dashboard:financials';
 
 const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
@@ -38,6 +40,8 @@ const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
     'transfers:view',
     'transfers:create',
     'transfers:approve',
+    'dashboard:view',
+    'dashboard:revenue',
     'dashboard:financials',
   ],
   staff: [
@@ -49,6 +53,8 @@ const ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Action[]> = {
     'invoices:upload',
     'orders:view',
     'orders:upload',
+    'dashboard:view',
+    'dashboard:revenue',
   ],
 };
 

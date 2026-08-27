@@ -12,6 +12,9 @@ import { fetchCustomerOrders } from "../../services/customerOrder-service";
 import { fetchSupplierInvoices } from "../../services/invoice-service";
 import { getApiErrorMessage } from "../../lib/apiError";
 import { formatLocalDate } from "../../lib/formatDate";
+import { decodeToken } from "../../lib/cognito";
+import { hasPermission } from "../permissions/permissions";
+import type { Role } from "../permissions/permissions";
 import type { WarehouseStock, StockMovement } from "../../types/stock";
 import type { Product } from "../../types/product";
 import type { CustomerOrder } from "../../types/order";
@@ -185,7 +188,7 @@ function computeOrderStatusBreakdown(orders: CustomerOrder[]): OrderStatusPoint[
 const PIE_COLORS = [TEAL, TEAL_DARK, TEAL_LIGHT];
 
 const SHIPMENTS_PAGE_SIZE = 3;
-const DEAD_STOCK_OPTIONS = [30, 60, 90] as const;
+const DEAD_STOCK_OPTIONS = [1, 7, 30, 60, 90] as const;
 const REPEAT_STOCKOUT_MIN_EVENTS = 2;
 const SPIKE_MULTIPLIER = 2;
 
@@ -382,6 +385,13 @@ type AlertKey = "repeatStockouts" | "spikes";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
+  const idToken = localStorage.getItem("idToken");
+  const tokenPayload = idToken ? decodeToken(idToken) : null;
+  const groups = (tokenPayload?.["cognito:groups"] as string[]) ?? [];
+  const role = (groups[0] ?? "staff") as Role;
+  const canViewFinancials = hasPermission(role, "dashboard:financials");
+  const canViewRevenue = hasPermission(role, "dashboard:revenue");
+
   const [stock, setStock] = useState<WarehouseStock[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -484,22 +494,30 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="dash-stat-grid">
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">{t("dashboard.totalRevenue")}</span>
-          <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalRevenue)}</span>
+      {(canViewRevenue || canViewFinancials) && (
+        <div className="dash-stat-grid">
+          {canViewRevenue && (
+            <div className="dash-stat-card">
+              <span className="dash-stat-label">{t("dashboard.totalRevenue")}</span>
+              <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalRevenue)}</span>
+            </div>
+          )}
+          {canViewFinancials && (
+            <>
+              <div className="dash-stat-card">
+                <span className="dash-stat-label">{t("dashboard.totalSpend")}</span>
+                <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalSpend)}</span>
+              </div>
+              <div className="dash-stat-card">
+                <span className="dash-stat-label">{t("dashboard.netValue")}</span>
+                <span className={`dash-stat-value ${netValue >= 0 ? "dash-stat-value--positive" : "dash-stat-value--negative"}`}>
+                  {loadingData ? "…" : formatCurrency(netValue)}
+                </span>
+              </div>
+            </>
+          )}
         </div>
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">{t("dashboard.totalSpend")}</span>
-          <span className="dash-stat-value">{loadingData ? "…" : formatCurrency(totalSpend)}</span>
-        </div>
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">{t("dashboard.netValue")}</span>
-          <span className={`dash-stat-value ${netValue >= 0 ? "dash-stat-value--positive" : "dash-stat-value--negative"}`}>
-            {loadingData ? "…" : formatCurrency(netValue)}
-          </span>
-        </div>
-      </div>
+      )}
 
       <div className="dash-card">
         <div className="dash-card-header">
@@ -545,40 +563,42 @@ export default function Dashboard() {
       </div>
 
       <div className="dash-charts">
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <div className="dash-card-title">{t("dashboard.revenueVsSpend")}</div>
-            <div className="dash-toggle">
-              {(["Day", "Week", "Month"] as Range[]).map((o) => (
-                <button key={o} className={range === o ? "is-active" : ""} onClick={() => setRange(o)} type="button">
-                  {t(RANGE_LABEL_KEYS[o])}
-                </button>
-              ))}
+        {canViewFinancials && (
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <div className="dash-card-title">{t("dashboard.revenueVsSpend")}</div>
+              <div className="dash-toggle">
+                {(["Day", "Week", "Month"] as Range[]).map((o) => (
+                  <button key={o} className={range === o ? "is-active" : ""} onClick={() => setRange(o)} type="button">
+                    {t(RANGE_LABEL_KEYS[o])}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="dash-card-body">
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={chartData} margin={{ left: -18, right: 8, top: 4 }}>
+                  <defs>
+                    <linearGradient id="dashRevFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={TEAL} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="dashSpendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={TEAL_DARK} stopOpacity={0.15} />
+                      <stop offset="100%" stopColor={TEAL_DARK} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                  <Area type="monotone" dataKey="revenue" stroke={TEAL} strokeWidth={2.5} fill="url(#dashRevFill)" />
+                  <Area type="monotone" dataKey="spend" stroke={TEAL_DARK} strokeWidth={2} fill="url(#dashSpendFill)" strokeDasharray="4 3" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
-          <div className="dash-card-body">
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={chartData} margin={{ left: -18, right: 8, top: 4 }}>
-                <defs>
-                  <linearGradient id="dashRevFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={TEAL} stopOpacity={0.3} />
-                    <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="dashSpendFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={TEAL_DARK} stopOpacity={0.15} />
-                    <stop offset="100%" stopColor={TEAL_DARK} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: AXIS_SUB }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-                <Area type="monotone" dataKey="revenue" stroke={TEAL} strokeWidth={2.5} fill="url(#dashRevFill)" />
-                <Area type="monotone" dataKey="spend" stroke={TEAL_DARK} strokeWidth={2} fill="url(#dashSpendFill)" strokeDasharray="4 3" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        )}
 
         <div className="dash-card">
           <div className="dash-card-header">
@@ -615,63 +635,65 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="dash-charts">
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <div className="dash-card-title">{t("dashboard.inventoryByWarehouse")}</div>
+      {canViewFinancials && (
+        <div className="dash-charts">
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <div className="dash-card-title">{t("dashboard.inventoryByWarehouse")}</div>
+            </div>
+            <div className="dash-card-body">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={warehouseValues} layout="vertical" margin={{ left: 8, right: 16, top: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 12, fill: AXIS_SUB }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `$${v}`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="warehouseName"
+                    tick={{ fontSize: 12, fill: AXIS_SUB }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={100}
+                  />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} cursor={{ fill: "rgba(58, 181, 204, 0.08)" }} />
+                  <Bar dataKey="value" fill={TEAL} radius={[0, 4, 4, 0]} maxBarSize={28} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="dash-card-body">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={warehouseValues} layout="vertical" margin={{ left: 8, right: 16, top: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_LINE} horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 12, fill: AXIS_SUB }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `$${v}`}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="warehouseName"
-                  tick={{ fontSize: 12, fill: AXIS_SUB }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={100}
-                />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} cursor={{ fill: "rgba(58, 181, 204, 0.08)" }} />
-                <Bar dataKey="value" fill={TEAL} radius={[0, 4, 4, 0]} maxBarSize={28} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <div className="dash-card-title">{t("dashboard.stockValueByCategory")}</div>
-          </div>
-          <div className="dash-card-body">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={categoryValues} dataKey="value" nameKey="category" innerRadius={50} outerRadius={80} paddingAngle={3}>
-                  {categoryValues.map((row) => (
-                    <Cell key={row.category} fill={CATEGORY_COLORS[row.category]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="dash-legend">
-              {categoryValues.map((row) => (
-                <div key={row.category} className="dash-legend-item">
-                  <span className="dash-legend-dot" style={{ background: CATEGORY_COLORS[row.category] }} />
-                  {t(`dashboard.categories.${row.category}`)}
-                </div>
-              ))}
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <div className="dash-card-title">{t("dashboard.stockValueByCategory")}</div>
+            </div>
+            <div className="dash-card-body">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={categoryValues} dataKey="value" nameKey="category" innerRadius={50} outerRadius={80} paddingAngle={3}>
+                    {categoryValues.map((row) => (
+                      <Cell key={row.category} fill={CATEGORY_COLORS[row.category]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="dash-legend">
+                {categoryValues.map((row) => (
+                  <div key={row.category} className="dash-legend-item">
+                    <span className="dash-legend-dot" style={{ background: CATEGORY_COLORS[row.category] }} />
+                    {t(`dashboard.categories.${row.category}`)}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="dash-alerts-section">
         <h2 className="dash-alerts-title">
