@@ -27,21 +27,44 @@ interface ShipmentRow {
   expectedDeliveryDate: string;
 }
 
+/**
+ * Parses a date string without the two traps that were silently dropping rows:
+ *  - "2026-08-27" (date-only) is parsed by JS as UTC midnight, which puts a
+ *    shipment expected *today* in the past. We build it in local time instead.
+ *  - An unparseable extracted date returns null instead of an Invalid Date,
+ *    so callers can decide what to do rather than failing every comparison.
+ */
+function parseDateSafe(value?: string | null): Date | null {
+  if (!value) return null;
+
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  }
+
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function computeUpcomingShipments(invoices: SupplierInvoice[]): ShipmentRow[] {
-  const now = Date.now();
+  // Compare against the start of today, not Date.now(), so a shipment expected
+  // today still counts as upcoming.
+  const cutoff = startOfDay(new Date()).getTime();
+
   return invoices
-    .filter((inv) => inv.status === "confirmed" && inv.extractedDeliveryDate)
-    .filter((inv) => new Date(inv.extractedDeliveryDate as string).getTime() >= now)
-    .sort(
-      (a, b) =>
-        new Date(a.extractedDeliveryDate as string).getTime() -
-        new Date(b.extractedDeliveryDate as string).getTime(),
+    .map((inv) => ({ inv, date: parseDateSafe(inv.extractedDeliveryDate) }))
+    .filter(
+      ({ inv, date }) =>
+        inv.status?.toLowerCase() === "confirmed" &&
+        date !== null &&
+        date.getTime() >= cutoff,
     )
-    .map((inv) => ({
+    .sort((a, b) => (a.date as Date).getTime() - (b.date as Date).getTime())
+    .map(({ inv, date }) => ({
       id: inv.id,
       supplierName: inv.extractedSupplierName ?? "Unknown supplier",
       warehouseName: inv.warehouse?.warehouseName ?? "Unknown warehouse",
-      expectedDeliveryDate: inv.extractedDeliveryDate as string,
+      expectedDeliveryDate: (date as Date).toISOString(),
     }));
 }
 
@@ -55,13 +78,13 @@ function invoiceTotal(invoice: SupplierInvoice): number {
 
 function computeTotalRevenue(orders: CustomerOrder[]): number {
   return orders
-    .filter((o) => o.status === "confirmed" || o.status === "delivered")
+    .filter((o) => o.status === "delivered")
     .reduce((sum, o) => sum + orderTotal(o), 0);
 }
 
 function computeTotalSpend(invoices: SupplierInvoice[]): number {
   return invoices
-    .filter((inv) => inv.status === "confirmed" || inv.status === "delivered")
+    .filter((inv) => inv.status === "delivered")
     .reduce((sum, inv) => sum + invoiceTotal(inv), 0);
 }
 
@@ -143,21 +166,29 @@ function computeRevenueSpendSeries(
     buckets.push({ start: s, end: e, label: bucketLabel(s, unit, language), revenue: 0, spend: 0 });
   }
 
-  function addToBucket(dateStr: string | null, amount: number, key: "revenue" | "spend") {
-    if (!dateStr) return;
-    const d = new Date(dateStr);
+  function addToBucket(
+    dateStr: string | null | undefined,
+    amount: number,
+    key: "revenue" | "spend",
+  ) {
+    const d = parseDateSafe(dateStr);
+    if (!d) return;
     const bucket = buckets.find((b) => d >= b.start && d < b.end);
     if (bucket) bucket[key] += amount;
   }
 
-    orders.forEach((o) => {
-    if (o.status !== "confirmed" && o.status !== "delivered") return;
-    addToBucket(o.confirmedAt, orderTotal(o), "revenue");
+  // Delivered only, matching the Total Revenue / Total Spend cards.
+  // The old version also let "confirmed" rows through, but those have a null
+  // deliveredAt so they were silently discarded a line later — the filter
+  // promised something it could never deliver.
+  orders.forEach((o) => {
+    if (o.status !== "delivered") return;
+    addToBucket(o.deliveredAt, orderTotal(o), "revenue");
   });
 
   invoices.forEach((inv) => {
-    if (inv.status !== "confirmed" && inv.status !== "delivered") return;
-    addToBucket(inv.confirmedAt, invoiceTotal(inv), "spend");
+    if (inv.status !== "delivered") return;
+    addToBucket(inv.deliveredAt, invoiceTotal(inv), "spend");
   });
 
   return buckets.map((b) => ({
@@ -465,6 +496,12 @@ export default function Dashboard() {
   };
 
   const shipmentPageCount = Math.max(1, Math.ceil(upcomingShipments.length / SHIPMENTS_PAGE_SIZE));
+
+  // Keep the pager in range when the underlying list shrinks.
+  useEffect(() => {
+    setShipmentPage((p) => Math.min(p, shipmentPageCount - 1));
+  }, [shipmentPageCount]);
+
   const visibleShipments = upcomingShipments.slice(
     shipmentPage * SHIPMENTS_PAGE_SIZE,
     shipmentPage * SHIPMENTS_PAGE_SIZE + SHIPMENTS_PAGE_SIZE,
