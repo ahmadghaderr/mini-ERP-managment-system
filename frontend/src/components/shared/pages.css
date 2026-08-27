@@ -71,7 +71,7 @@
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important; */
   font-weight: 800;
 }
 
@@ -83,7 +83,7 @@ h1, h2, h3, h4, h5, h6 {
 .stk-pg-title,
 .sidebar-logo,
 .login-title {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important; */
 }
 :root {
   --primary: #3ab5cc;
@@ -131,7 +131,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 input, select, textarea, button {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; */
 }
 
 .inv-btn--danger, .usr-btn--danger, .stk-btn--danger, .ord-btn--danger {
@@ -189,7 +189,7 @@ input, select, textarea, button {
   width: 100%;
   min-height: 44px;
   color: var(--text-primary);
-  font-family: inherit;
+  /* font-family: inherit; */
   box-sizing: border-box;
   transition: all 0.2s ease;
 }
@@ -209,7 +209,7 @@ input, select, textarea, button {
   border-color: var(--border-color-hover);
 }
 table, th, td, tr, thead, tbody {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important; */
 }
 
 /* ============================================
@@ -219,7 +219,7 @@ table, th, td, tr, thead, tbody {
    ============================================ */
 
 * {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Raleway", sans-serif !important;
 }
 
 /* Every table header cell, on every page */

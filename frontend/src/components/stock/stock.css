@@ -182,7 +182,7 @@
   transition: all var(--transition-normal);
   width: 100%;
   min-height: 44px;
-  font-family: inherit;
+  /* font-family: inherit; */
 }
 
 .stk-input::placeholder {

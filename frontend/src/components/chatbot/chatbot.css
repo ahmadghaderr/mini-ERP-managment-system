@@ -282,7 +282,7 @@
   border-radius: 4px;
   padding: 1px 5px;
   font-size: 13px;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  /* font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; */
 }
 
 .chat-msg--user .chat-markdown code {
