@@ -6,7 +6,7 @@ import {
   createChatSession,
   listChatSessions,
   getSessionMessages,
-  sendSessionMessage,
+  streamSessionMessage,
   deleteChatSession,
 } from "../../services/chatbot-service";
 import { getApiErrorMessage } from "../../lib/apiError";
@@ -15,7 +15,10 @@ import i18n from "../../i18n/config";
 
 function formatTime(iso: string, language: string): string {
   const locale = language === "ar" ? "ar-LB-u-nu-latn" : "en-US";
-  return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function ChatPage() {
@@ -30,8 +33,17 @@ export default function ChatPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [streamingText, setStreamingText] = useState("");
+  const [streamingThinking, setStreamingThinking] = useState("");
+  const [thinkingOpen, setThinkingOpen] = useState(true);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const activeSessionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
 
   useEffect(() => {
     loadSessions();
@@ -41,7 +53,7 @@ export default function ChatPage() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, sending]);
+  }, [messages, sending, streamingText, streamingThinking]);
 
   async function loadSessions(selectId?: string) {
     setLoadingSessions(true);
@@ -126,23 +138,44 @@ export default function ChatPage() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setSending(true);
     setError(null);
+    setStreamingText("");
+    setStreamingThinking("");
+    setThinkingOpen(true);
 
-    try {
-      const result = await sendSessionMessage(activeSessionId, trimmed);
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        chatSessionId: activeSessionId,
-        role: "assistant",
-        text: result.reply,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      loadSessions(activeSessionId);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setSending(false);
-    }
+    const sessionIdAtSend = activeSessionId;
+
+    await streamSessionMessage(sessionIdAtSend, trimmed, {
+      onThinkingDelta: (delta) => {
+        if (activeSessionIdRef.current !== sessionIdAtSend) return;
+        setStreamingThinking((prev) => prev + delta);
+      },
+      onTextDelta: (delta) => {
+        if (activeSessionIdRef.current !== sessionIdAtSend) return;
+        setStreamingText((prev) => prev + delta);
+      },
+      onDone: async () => {
+        try {
+          const data = await getSessionMessages(sessionIdAtSend);
+          if (activeSessionIdRef.current === sessionIdAtSend) {
+            setMessages(data);
+          }
+        } catch (err) {
+          setError(getApiErrorMessage(err));
+        }
+        if (activeSessionIdRef.current === sessionIdAtSend) {
+          setStreamingText("");
+          setStreamingThinking("");
+          setSending(false);
+        }
+        loadSessions(sessionIdAtSend);
+      },
+      onError: (message) => {
+        setError(message);
+        setStreamingText("");
+        setStreamingThinking("");
+        setSending(false);
+      },
+    });
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -165,7 +198,16 @@ export default function ChatPage() {
     <div className="chat-pg">
       <div className="chat-sidebar">
         <button className="chat-new-session-btn" onClick={handleNewSession}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
@@ -176,7 +218,9 @@ export default function ChatPage() {
           {loadingSessions ? (
             <div className="chat-session-empty">{t("common.loading")}...</div>
           ) : sessions.length === 0 ? (
-            <div className="chat-session-empty">{t("chatbot.noConversations")}</div>
+            <div className="chat-session-empty">
+              {t("chatbot.noConversations")}
+            </div>
           ) : (
             sessions.map((s) => (
               <div
@@ -186,7 +230,17 @@ export default function ChatPage() {
                 }`}
                 onClick={() => setActiveSessionId(s.id)}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="chat-session-item-icon">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="chat-session-item-icon"
+                >
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 00 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                 </svg>
                 <span className="chat-session-item-title">{s.title}</span>
@@ -196,7 +250,16 @@ export default function ChatPage() {
                   disabled={deletingId === s.id}
                   aria-label="Delete conversation"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     <line x1="10" y1="11" x2="10" y2="17" />
@@ -213,7 +276,16 @@ export default function ChatPage() {
         {activeSession && (
           <div className="chat-header">
             <div className="chat-header-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
               </svg>
             </div>
@@ -225,7 +297,17 @@ export default function ChatPage() {
 
         {!activeSessionId ? (
           <div className="chat-no-session">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="chat-no-session-icon">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="chat-no-session-icon"
+            >
               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
             </svg>
             <p>{t("chatbot.selectOrStart")}</p>
@@ -234,10 +316,22 @@ export default function ChatPage() {
           <>
             <div className="chat-messages-area" ref={scrollRef}>
               {loadingMessages ? (
-                <div className="chat-session-empty">{t("chatbot.loadingMessages")}</div>
-              ) : messages.length === 0 ? (
+                <div className="chat-session-empty">
+                  {t("chatbot.loadingMessages")}
+                </div>
+              ) : messages.length === 0 && !sending ? (
                 <div className="chat-empty-conversation">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="chat-empty-icon">
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="chat-empty-icon"
+                  >
                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.380 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                   </svg>
                   <p>{t("chatbot.askAnything")}</p>
@@ -252,7 +346,9 @@ export default function ChatPage() {
                       <div className={`chat-msg chat-msg--${m.role}`}>
                         <MarkdownMessage text={m.text} />
                       </div>
-                      <span className={`chat-msg-time chat-msg-time--${m.role}`}>
+                      <span
+                        className={`chat-msg-time chat-msg-time--${m.role}`}
+                      >
                         {formatTime(m.createdAt, i18n.language)}
                       </span>
                     </div>
@@ -266,10 +362,52 @@ export default function ChatPage() {
                 <div className="chat-row chat-row--assistant">
                   <div className="chat-avatar chat-avatar--bot">🤖</div>
                   <div className="chat-msg-group">
-                    <div className="chat-msg chat-msg--assistant chat-typing">
-                      <span className="chat-typing-dot" />
-                      <span className="chat-typing-dot" />
-                      <span className="chat-typing-dot" />
+                    {streamingThinking && (
+                      <div className="chat-thinking-block">
+                        <button
+                          type="button"
+                          className="chat-thinking-toggle"
+                          onClick={() => setThinkingOpen((o) => !o)}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                              transform: thinkingOpen
+                                ? "rotate(90deg)"
+                                : "none",
+                              transition: "transform 0.15s ease",
+                            }}
+                          >
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                          {streamingText
+                            ? t("chatbot.thoughtProcess", "Thought process")
+                            : t("chatbot.thinking", "Thinking...")}
+                        </button>
+                        {thinkingOpen && (
+                          <div className="chat-thinking-text">
+                            {streamingThinking}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="chat-msg chat-msg--assistant">
+                      {streamingText ? (
+                        <MarkdownMessage text={streamingText} />
+                      ) : (
+                        <div className="chat-typing">
+                          <span className="chat-typing-dot" />
+                          <span className="chat-typing-dot" />
+                          <span className="chat-typing-dot" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -293,7 +431,16 @@ export default function ChatPage() {
                 disabled={sending || !input.trim()}
                 aria-label="Send message"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <line x1="22" y1="2" x2="11" y2="13" />
                   <polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
