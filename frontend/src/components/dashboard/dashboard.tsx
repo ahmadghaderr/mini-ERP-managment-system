@@ -147,14 +147,14 @@ function computeRevenueSpendSeries(
     if (bucket) bucket[key] += amount;
   }
 
-  orders.forEach((o) => {
+    orders.forEach((o) => {
     if (o.status !== "confirmed" && o.status !== "delivered") return;
-    addToBucket(o.uploadedAt, orderTotal(o), "revenue");
+    addToBucket(o.confirmedAt, orderTotal(o), "revenue");
   });
 
   invoices.forEach((inv) => {
     if (inv.status !== "confirmed" && inv.status !== "delivered") return;
-    addToBucket(inv.invoiceDateExtracted, invoiceTotal(inv), "spend");
+    addToBucket(inv.confirmedAt, invoiceTotal(inv), "spend");
   });
 
   return buckets.map((b) => ({
